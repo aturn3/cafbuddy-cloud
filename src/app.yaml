@@ -1,17 +1,18 @@
 application: cafbuddy
 version: 1
 runtime: python27
-threadsafe: true
 api_version: 1
+threadsafe: true
 
 handlers:
-# Endpoints handler: Must be /_ah/spi. Apps send requests to /_ah/api, but these are handled at /_ah/spi!!
+# Endpoints handler: Must be /_ah/spi. 
+# Apps send requests to /_ah/api, but these are handled at /_ah/spi
 - url: /_ah/spi/.*
-  script: helloworld_api.APPLICATION
-  #secure: always -- uncomment this eventually probably...
+  script: api_server.API_SERVER
+  secure: always
 
 libraries:
-- name: pycrypto
-  version: latest
 - name: endpoints
-  version: 1.0
+  version: latest
+- name: webapp2
+  version: "2.5.2"

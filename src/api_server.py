@@ -1,6 +1,4 @@
-from google.appengine.ext import endpoints
+import endpoints
+from apis.UserApi import UserApi
 
-from APIs import User
-
-
-application = endpoints.api_server([User.UserApi, restricted=False)
+API_SERVER = endpoints.api_server([UserApi], restricted=False)
