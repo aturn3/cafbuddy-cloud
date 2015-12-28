@@ -7,7 +7,7 @@ from protorpc import remote
 from classes.User import User
 
 """
-Application Specific Error Messages
+Application Specific Error Numbers
 
 -1 => Invalid email or password
 -2 => User is already registered
@@ -16,6 +16,7 @@ Application Specific Error Messages
 -5 => User was unable to be validated as logged in
 """
 
+#The error messages that will be returned to their client and displayed to the user.
 errorMessages = {
 	-1: "Invalid email or password.",
 	-2: "You are already registered.",
@@ -72,7 +73,9 @@ class ValidateUserResponseMessage(messages.Message):
 class UserApi(remote.Service):
 
 	"""
-	Creates user with encrypted password, returning auth token for validation
+	Creates a new user with all of its attributes and logs in the user
+	On Success: Returns the authToken necessary to validate the user and log out the user
+	On Error: Can Return -3, -4
 	"""
 	@endpoints.method(SignUpUserRequestMessage, SignUpUserResponseMessage, name='signupUser', path='signupUser', http_method='POST')
 	def signupUser(self, request):        
@@ -90,7 +93,9 @@ class UserApi(remote.Service):
 		return SignUpUserResponseMessage(authToken = authTokOrErrorNum, errorNumber = 200)
 
 	"""
-	login method using password and email/username (store in userName field), returns auth token
+	Logs in a user using their password and email
+	On Success: Returns the authToken necessary to validate the user and log out the user
+	On Error: Can Return -3
 	"""
 	@endpoints.method(LogInUserRequestMessage, LogInUserResponseMessage, name='loginUser', path='loginUser', http_method='POST')
 	def loginUser(self, request):
@@ -106,7 +111,8 @@ class UserApi(remote.Service):
 		
 		
 	"""
-	logout method, simply deletes authtoken from backend
+	Logs out a user, deleting their authToken used to validate their login from the database
+	On Error: Can Return -3, 404
 	"""
 	@endpoints.method(LogOutUserRequestMessage, LogOutUserResponseMessage, name='logoutUser', path='logoutUser', http_method='POST')    
 	def logoutUser(self,request):
@@ -121,8 +127,8 @@ class UserApi(remote.Service):
 		
 		
 	"""
-	validate the user
-	Can return: -3, -5
+	Checks to see if the user is logged in (validates the authToken "symbolizing" their log in)
+	On Errror: Can Return -3, -5
 	"""
 	@endpoints.method(ValidateUserRequestMessage, ValidateUserResponseMessage, name='validateUser', path='validateUser', http_method='POST')
 	def validateUser(self, request):

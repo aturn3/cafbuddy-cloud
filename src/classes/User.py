@@ -94,8 +94,8 @@ class User(webapp2_extras.appengine.auth.models.User):
 	
 	""" 
 	Logs a user out by deleting the authToken associated with its current logged in state from the database 
-	Returns false if the user doesn't exist or token wasn't deleted
-	Returns true if token was deleted
+	Returns false if the user doesn't exist
+	Returns true otherwise since if authtoken is invalid and can't be deleted then it wont work for login anyways
 	""" 
 	@classmethod
 	def logOut(cls, emailAddress, authToken):
