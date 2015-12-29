@@ -36,8 +36,8 @@ class SignUpUserRequestMessage(messages.Message):
 	password = messages.StringField(4, required = True)
 
 class LogInUserRequestMessage(messages.Message):
-	emailAddress = messages.StringField(1, required = True)
-	password = messages.StringField(2, required = True)
+	password = messages.StringField(1, required = True)
+	emailAddress = messages.StringField(2, required = True)
 
 class LogOutUserRequestMessage(messages.Message):
 	authToken = messages.StringField(1, required = True)
@@ -46,6 +46,9 @@ class LogOutUserRequestMessage(messages.Message):
 class ValidateUserRequestMessage(messages.Message):
 	authToken = messages.StringField(1, required = True)
 	emailAddress = messages.StringField(2, required = True)
+
+class SendNewEmailVerificationRequestMessage(messages.Message):
+	emailAddress = messages.StringField(1, required = True)
 
 """
 Response ProtoRPC messages
@@ -68,6 +71,9 @@ class ValidateUserResponseMessage(messages.Message):
 	errorNumber = messages.IntegerField(1, required = False)
 	errorMessage = messages.StringField(2, required = False)
 
+class SendNewEmailVerificationResponseMessage(messages.Message):
+	errorNumber = messages.IntegerField(1, required = False)
+	errorMessage = messages.StringField(2, required = False)
 
 @endpoints.api(name='userService', version='v1.011', description='API for working with a User', hostname='cafbuddy.appspot.com')  
 class UserApi(remote.Service):
@@ -140,5 +146,23 @@ class UserApi(remote.Service):
 		if not userKey:
 			return ValidateUserResponseMessage(errorMessage = errorMessages[-5], errorNumber = -5)
 		return ValidateUserResponseMessage(errorNumber = 200);
+
+
+	"""
+	
+	On Errror: Can Return -3, -5
+	"""
+	@endpoints.method(SendNewEmailVerificationRequestMessage, SendNewEmailVerificationResponseMessage, name='sendNewEmailVerification', path='sendNewEmailVerification', http_method='POST')
+	def sendNewEmailVerification(self, request):
+		if (request.emailAddress == ""):
+			return SendNewEmailVerificationResponseMessage(errorMessage = errorMessages[-3], errorNumber = -3)
+		
+		#validates user
+		success = User.sendVerificationEmail(request.emailAddress)
+		if not success:
+			return SendNewEmailVerificationResponseMessage(errorMessage = errorMessages[-4], errorNumber = -4)
+		return SendNewEmailVerificationResponseMessage(errorNumber = 200);
+
+
 
 

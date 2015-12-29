@@ -1,9 +1,13 @@
 from google.appengine.ext import ndb
+from google.appengine.api import mail
+from google.appengine.api.mail import InvalidEmailError
 
 import webapp2_extras.appengine.auth.models
 from webapp2_extras import security
 from webapp2_extras.auth import InvalidAuthIdError
 from webapp2_extras.auth import InvalidPasswordError
+
+from Utilities import *
 
  
 class User(webapp2_extras.appengine.auth.models.User):
@@ -38,6 +42,46 @@ class User(webapp2_extras.appengine.auth.models.User):
 	return None, None
 	"""
 
+	@classmethod
+	def sendVerificationEmail(cls, emailAddress, userId = -1):
+		#sanity check
+		if (emailAddress == "" or "@" not in emailAddress or "." not in emailAddress):
+			return false
+
+		userOb = None
+		#gets user object for authId and returns false if user doesn't exist in database
+		if (userId == -1):
+			userOb = cls.get_by_auth_id("own:" + emailAddress)
+			if not userOb:
+				return False
+			userId = userOb.get_id();
+		else:
+			userOb = cls.get_by_id(userId)
+
+		#create a token that will be used to verify emails
+		signupToken = cls.create_signup_token(userId)
+
+		try:
+			mailSender = "Caf Buddy <noreply@cafbuddy.appspotmail.com>"
+			mailTo = userOb.firstName + " " + userOb.lastName + " <" + emailAddress + ">"
+			mailSubject = "Welcome To Caf Buddy - Verify Your Account"
+			mailBody = "Dear " + userOb.firstName + ",\n\n Welcome to Caf buddy!"
+			mailBody += "\n\n We just need to make sure you are part of the St. Olaf community, so you just need to quickly verify your account."
+			mailBody += " Click the following link or copy and paste it into your favorite browser and you will be all set to meet tons of new people and never eat alone again."
+			mailBody += "\n\n http://cafbuddy.appspot.com/?email=" + emailAddress + "&signupTok=" + signupToken
+			mailBody += "\n\n If you did not sign up for Caf buddy or were not expecting this email then you can safely ignore it."
+			mail.send_mail(
+				sender = mailSender,
+				to = mailTo,
+				subject = mailSubject,
+				body = mailBody
+			)
+			return True
+
+		except InvalidEmailError:
+			return False
+
+
 	"""
 	Creates a user model and returns a tuple
 	On Success: [True, AuthToken] -- authtoken should be saved and used for validating the user is logged in later
@@ -45,6 +89,11 @@ class User(webapp2_extras.appengine.auth.models.User):
 	"""
 	@classmethod
 	def signUp(cls, firstName, lastName, emailAddress, rawPassword):
+		#first, clean up the first and last name by capitalizing the first letter of each word
+		#and making the rest lowercase
+		firstName = cleanUpName(firstName)
+		lastName = cleanUpName(lastName)
+
 		#create a new user to put in the database
 		#first argument is auth_id - these are unique identifiers that can be used to get the user from the database
 		#for people created using our own sign up the auth_id is "own:email_adress"
@@ -57,7 +106,8 @@ class User(webapp2_extras.appengine.auth.models.User):
 			password_raw = rawPassword,
 			emailAddress = emailAddress,
 			firstName = firstName,
-			lastName = lastName
+			lastName = lastName,
+			emailVerified = False
 		)
 		
 		#if email is already registered, send back error message
@@ -67,6 +117,8 @@ class User(webapp2_extras.appengine.auth.models.User):
 		#gets user id in order to get the user object
 		userId = user_data[1].get_id()
 		userOb = cls.get_by_id(userId)
+
+		cls.sendVerificationEmail(emailAddress)
 		
 		#creates auth token - this, along with an auth_id - is what is used to verify a user
 		#is logged in later
