@@ -4,7 +4,7 @@ from Utilities import *
 
 class School(ndb.Model):
 	name = ndb.StringProperty() #This is our best guess at a name unless it is set explicitly. Initially it is just set by taking the part between @ and . in the email.
-	emailDomain = ndb.StringProperty() # This is the non-name part of the email. E.g. @wisc.edu or @stolaf.edu
+	emailDomain = ndb.StringProperty(required = True) # This is the non-name part of the email. E.g. @wisc.edu or @stolaf.edu
 	created = ndb.DateTimeProperty(auto_now_add = True, indexed = False)
 
 	"""
@@ -24,7 +24,7 @@ class School(ndb.Model):
 		schoolOb = cls.getSchoolObjectByEmail(emailAddress)
 		if (schoolOb is not None):
 			return [True, schoolOb]
-		schoolOb = School(name = schoolName, emailDomain = emailDomain)
+		schoolOb = School(name = schoolName, emailDomain = emailDomain, id = emailDomain)
 		schoolOb.put()
 		return [True, schoolOb]
 
