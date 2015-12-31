@@ -18,35 +18,18 @@ class User(webapp2_extras.appengine.auth.models.User):
 
 	#returns a user object based on a user ID and token.
 	#used for resetting passwords
-	"""
-	@classmethod
-	def get_by_auth_token(cls, user_id, token, subject='auth'):
-	"""
-	"""
-	:param user_id:
-		The user_id of the requesting user.
-	:param token:
-		The token string to be verified.
-	:returns:
-		A tuple ``(User, timestamp)``, with a user object and
-		the token timestamp, or ``(None, None)`` if both were not found.
-	"""	"""
-	token_key = cls.token_model.get_key(user_id, subject, token)
-	user_key = ndb.Key(cls, user_id)
-	# Use get_multi() to save a RPC call.
-	valid_token, user = ndb.get_multi([token_key, user_key])
-	if valid_token and user:
-		timestamp = int(time.mktime(valid_token.created.timetuple()))
-		return user, timestamp
 
-	return None, None
 	"""
-
+	Creates a new sign up token and sends a verification email to the specified email address
+	The userId argument is not necessary as it can be found from the email address but saves on a db call if we have it
+	Returns true if a new token was generated and an email successfully sent
+	Returns false if a verification email was not generated and sent due to bad email, unknown user, or problems sending the email
+	"""
 	@classmethod
 	def sendVerificationEmail(cls, emailAddress, userId = -1):
 		#sanity check
 		if (emailAddress == "" or "@" not in emailAddress or "." not in emailAddress):
-			return false
+			return False
 
 		userOb = None
 		#gets user object for authId and returns false if user doesn't exist in database
@@ -54,7 +37,7 @@ class User(webapp2_extras.appengine.auth.models.User):
 			userOb = cls.get_by_auth_id("own:" + emailAddress)
 			if not userOb:
 				return False
-			userId = userOb.get_id();
+			userId = userOb.get_id()
 		else:
 			userOb = cls.get_by_id(userId)
 
@@ -68,7 +51,7 @@ class User(webapp2_extras.appengine.auth.models.User):
 			mailBody = "Dear " + userOb.firstName + ",\n\n Welcome to Caf buddy!"
 			mailBody += "\n\n We just need to make sure you are part of the St. Olaf community, so you just need to quickly verify your account."
 			mailBody += " Click the following link or copy and paste it into your favorite browser and you will be all set to meet tons of new people and never eat alone again."
-			mailBody += "\n\n http://cafbuddy.appspot.com/?email=" + emailAddress + "&signupTok=" + signupToken
+			mailBody += "\n\n http://cafbuddy.appspot.com/verifyemail?email=" + emailAddress + "&signupTok=" + signupToken
 			mailBody += "\n\n If you did not sign up for Caf buddy or were not expecting this email then you can safely ignore it."
 			mail.send_mail(
 				sender = mailSender,
@@ -80,6 +63,38 @@ class User(webapp2_extras.appengine.auth.models.User):
 
 		except InvalidEmailError:
 			return False
+
+	"""
+	Verifies the account associated with the given email address using the supplied signup token
+	Returns true if the email was successfully verified or had been verified previously
+	Returns false if the email was not verified due to an invalid email, unknown user, or bad sign up token
+	"""
+	@classmethod
+	def verifyEmail(cls, emailAddress, signupToken):
+		# sanity check
+		if (emailAddress == "" or "@" not in emailAddress or "." not in emailAddress):
+			return False
+
+		# gets user object for authId and returns false if user doesn't exist in database
+		userOb = cls.get_by_auth_id("own:" + emailAddress)
+		if not userOb:
+			return False
+
+		# check that the user hasn't already been verified. If they have then just return true
+		if (userOb.emailVerified == True):
+			return True
+
+		# else check if the supplied signup token is valid
+		# if its valid.. verify the user (put in db) and delete signup token.. otherwise return false
+		if (not cls.validate_signup_token(userOb.get_id(), signupToken)):
+			return False
+		else:
+			cls.delete_signup_token(userOb.get_id(), signupToken)
+			userOb.emailVerified = True
+			userOb.put()
+
+		return True
+
 
 
 	"""
@@ -177,7 +192,20 @@ class User(webapp2_extras.appengine.auth.models.User):
 		if userTokenOb:
 			return userOb.key.urlsafe()
 		return False
-	
+
+	"""
+	Determines if a given user has verified their email address
+	Returns true if the user has verified their address
+	Returns false if they haven't or the user is unkown
+	"""
+	@classmethod
+	def hasVerifiedEmail(cls, emailAddress):
+		# gets user object for authId and returns false if user doesn't exist in database
+		userOb = cls.get_by_auth_id("own:" + emailAddress)
+		if not userOb:
+			return False
+
+		return userOb.emailVerified
 
 
 

@@ -11,6 +11,11 @@ handlers:
   script: api_server.API_SERVER
   secure: always
 
+- url: /verifyemail
+  script: verification.application
+  secure: always
+
+
 libraries:
 - name: endpoints
   version: latest
