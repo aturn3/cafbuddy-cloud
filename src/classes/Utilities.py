@@ -21,3 +21,19 @@ def cleanUpName(name):
 		word = word[1:]
 		newName += " " + word
 	return newName[1:]
+
+"""
+Gets the domain of the email address from any given address
+Also performs some clean up on the email address to ensure that
+the domain is always the same (lowercases everything)
+Returns a tupple [bool, domain] indicating if the email address
+was valid and a real domain was extracted from it
+"""
+def getEmailDomainFromEmailAddress(emailAddress):
+	emailAddress = emailAddress.lower()
+	if ("@" not in emailAddress or "." not in emailAddress):
+	    return [False, ""]
+	emailDomainIndx = emailAddress.find("@")
+	emailDomain = emailAddress[emailDomainIndx:]
+	return [True, emailDomain]
+

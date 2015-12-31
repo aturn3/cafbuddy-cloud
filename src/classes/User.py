@@ -8,6 +8,7 @@ from webapp2_extras.auth import InvalidAuthIdError
 from webapp2_extras.auth import InvalidPasswordError
 
 from Utilities import *
+from School import School
 
  
 class User(webapp2_extras.appengine.auth.models.User):
@@ -109,6 +110,11 @@ class User(webapp2_extras.appengine.auth.models.User):
 		firstName = cleanUpName(firstName)
 		lastName = cleanUpName(lastName)
 
+		#get the object of the school that they go to
+		(sucess, schoolOb) = School.createOrGetSchoolObjectByEmail(emailAddress)
+		if (not sucess):
+			return [False, -4]
+
 		#create a new user to put in the database
 		#first argument is auth_id - these are unique identifiers that can be used to get the user from the database
 		#for people created using our own sign up the auth_id is "own:email_adress"
@@ -122,17 +128,19 @@ class User(webapp2_extras.appengine.auth.models.User):
 			emailAddress = emailAddress,
 			firstName = firstName,
 			lastName = lastName,
+			schoolKey = schoolOb.key,
 			emailVerified = False
 		)
 		
 		#if email is already registered, send back error message
 		if not user_data[0]:
-			return [False, -2];
+			return [False, -2]
 		
 		#gets user id in order to get the user object
 		userId = user_data[1].get_id()
 		userOb = cls.get_by_id(userId)
 
+		#send the verification email to the user to verify they go to St. Olaf
 		cls.sendVerificationEmail(emailAddress, userId)
 		
 		#creates auth token - this, along with an auth_id - is what is used to verify a user
