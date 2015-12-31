@@ -149,7 +149,7 @@ class UserApi(remote.Service):
 
 
 	"""
-	
+	Generates a new sign up verification token and sends a new verification email to the user associated with the specified
 	On Errror: Can Return -3, -5
 	"""
 	@endpoints.method(SendNewEmailVerificationRequestMessage, SendNewEmailVerificationResponseMessage, name='sendNewEmailVerification', path='sendNewEmailVerification', http_method='POST')

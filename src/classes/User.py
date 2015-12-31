@@ -48,11 +48,11 @@ class User(webapp2_extras.appengine.auth.models.User):
 			mailSender = "Caf Buddy <noreply@cafbuddy.appspotmail.com>"
 			mailTo = userOb.firstName + " " + userOb.lastName + " <" + emailAddress + ">"
 			mailSubject = "Welcome To Caf Buddy - Verify Your Account"
-			mailBody = "Dear " + userOb.firstName + ",\n\n Welcome to Caf buddy!"
+			mailBody = "Dear " + userOb.firstName + ",\n\n Welcome to Caf Buddy!"
 			mailBody += "\n\n We just need to make sure you are part of the St. Olaf community, so you just need to quickly verify your account."
 			mailBody += " Click the following link or copy and paste it into your favorite browser and you will be all set to meet tons of new people and never eat alone again."
 			mailBody += "\n\n http://cafbuddy.appspot.com/verifyemail?email=" + emailAddress + "&signupTok=" + signupToken
-			mailBody += "\n\n If you did not sign up for Caf buddy or were not expecting this email then you can safely ignore it."
+			mailBody += "\n\n If you did not sign up for Caf Buddy or were not expecting this email then you can safely ignore it."
 			mail.send_mail(
 				sender = mailSender,
 				to = mailTo,
@@ -133,7 +133,7 @@ class User(webapp2_extras.appengine.auth.models.User):
 		userId = user_data[1].get_id()
 		userOb = cls.get_by_id(userId)
 
-		cls.sendVerificationEmail(emailAddress)
+		cls.sendVerificationEmail(emailAddress, userId)
 		
 		#creates auth token - this, along with an auth_id - is what is used to verify a user
 		#is logged in later
