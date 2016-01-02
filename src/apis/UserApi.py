@@ -5,6 +5,7 @@ from protorpc import message_types
 from protorpc import remote
 
 from classes.User import User
+from classes.Ratings import Ratings
 
 """
 Application Specific Error Numbers
@@ -50,6 +51,20 @@ class ValidateUserRequestMessage(messages.Message):
 class SendNewEmailVerificationRequestMessage(messages.Message):
 	emailAddress = messages.StringField(1, required = True)
 
+class IncrementPositiveRatingRequestMessage(messages.Message):
+	authToken = messages.StringField(1, required = True)
+	emailAddress = messages.StringField(2, required = True)
+
+class IncrementNegativeRatingRequestMessage(messages.Message):
+	authToken = messages.StringField(1, required = True)
+	emailAddress = messages.StringField(2, required = True)
+
+class AddReportToUserRequestMessage(messages.Message):
+	authToken = messages.StringField(1, required = True)
+	emailAddress = messages.StringField(2, required = True)
+	reportType = messages.IntegerField(3, required = True)
+	comments = messages.StringField(4, required = False)
+
 """
 Response ProtoRPC messages
 """	
@@ -75,6 +90,20 @@ class SendNewEmailVerificationResponseMessage(messages.Message):
 	errorNumber = messages.IntegerField(1, required = False)
 	errorMessage = messages.StringField(2, required = False)
 
+class IncrementPositiveRatingResponseMessage(messages.Message):
+	errorNumber = messages.IntegerField(1, required = False)
+	errorMessage = messages.StringField(2, required = False)
+
+class IncrementNegativeRatingResponseMessage(messages.Message):
+	errorNumber = messages.IntegerField(1, required = False)
+	errorMessage = messages.StringField(2, required = False)
+
+class AddReportToUserResponseMessage(messages.Message):
+	errorNumber = messages.IntegerField(1, required = False)
+	errorMessage = messages.StringField(2, required = False)
+
+
+
 @endpoints.api(name='userService', version='v1.011', description='API for working with a User', hostname='cafbuddy.appspot.com')  
 class UserApi(remote.Service):
 
@@ -94,7 +123,7 @@ class UserApi(remote.Service):
 		
 		#calls backend function, returns token of user if success or error number if error
 		success, authTokOrErrorNum = User.signUp(request.firstName, request.lastName, request.emailAddress, request.password)
-		if not success:
+		if (not success):
 			return SignUpUserResponseMessage(errorMessage = errorMessages[authTokOrErrorNum], errorNumber = authTokOrErrorNum)        
 		return SignUpUserResponseMessage(authToken = authTokOrErrorNum, errorNumber = 200)
 
@@ -111,7 +140,7 @@ class UserApi(remote.Service):
 		#calls user backend function, returns token of user
 		success, authTokOrErrorNum = User.logIn(request.emailAddress, request.password)
 		
-		if not success:
+		if (not success):
 			return LogInUserResponseMessage(errorMessage = errorMessages[authTokOrErrorNum], errorNumber = authTokOrErrorNum)
 		return LogInUserResponseMessage(authToken = authTokOrErrorNum, errorNumber = 200)
 		
@@ -126,7 +155,7 @@ class UserApi(remote.Service):
 			return LogOutUserResponseMessage(errorMessage = errorMessages[-3], errorNumber = -3)
 		
 		success = User.logOut(request.emailAddress, request.authToken)
-		if(success):
+		if (success):
 			return LogOutUserResponseMessage(errorNumber = 200)
 		else:
 			return LogOutUserResponseMessage(errorNumber = 404)
@@ -142,8 +171,8 @@ class UserApi(remote.Service):
 			return ValidateUserResponseMessage(errorMessage = errorMessages[-3], errorNumber = -3)
 		
 		#validates user
-		userKey = User.validateLogIn(request.emailAddress, request.authToken)
-		if not userKey:
+		success, userOb = User.validateLogIn(request.emailAddress, request.authToken)
+		if (not success):
 			return ValidateUserResponseMessage(errorMessage = errorMessages[-5], errorNumber = -5)
 		return ValidateUserResponseMessage(errorNumber = 200);
 
@@ -159,10 +188,57 @@ class UserApi(remote.Service):
 		
 		#validates user
 		success = User.sendVerificationEmail(request.emailAddress)
-		if not success:
+		if (not success):
 			return SendNewEmailVerificationResponseMessage(errorMessage = errorMessages[-4], errorNumber = -4)
 		return SendNewEmailVerificationResponseMessage(errorNumber = 200);
 
+
+	"""
+	Sets a Positive rating on the logged in user
+	On Errror: Can Return -5
+	"""
+	@endpoints.method(IncrementPositiveRatingRequestMessage, IncrementPositiveRatingResponseMessage, name='incrementPositiveRating', path='incrementPositiveRating', http_method='POST')
+	def incrementPositiveRating(self, request):
+		isLoggedIn, userOb = User.validateLogIn(request.emailAddress, request.authToken)
+		if (not isLoggedIn):
+			return IncrementPositiveRatingResponseMessage(errorMessage = errorMessages[-5], errorNumber = -5)
+		
+		Ratings.addPositiveRating(userOb.key)
+		return IncrementPositiveRatingResponseMessage(errorNumber = 200)
+
+
+	"""
+	Increments a Negative rating on the logged in user
+	On Errror: Can Return -5
+	"""
+	@endpoints.method(IncrementNegativeRatingRequestMessage, IncrementNegativeRatingResponseMessage, name='incrementNegativeRating', path='incrementNegativeRating', http_method='POST')
+	def incrementNegativeRating(self, request):
+		isLoggedIn, userOb = User.validateLogIn(request.emailAddress, request.authToken)
+		if (not isLoggedIn):
+			return IncrementNegativeRatingResponseMessage(errorMessage = errorMessages[-5], errorNumber = -5)
+		
+		Ratings.addNegativeRating(userOb.key)
+		return IncrementNegativeRatingResponseMessage(errorNumber = 200)
+
+
+	"""
+	Adds a report (a complaint) to the user
+	********
+	The reportType integers are:
+	0: General Complaint / Other
+	1: Harrasment / Bullying
+	2: Unfriendly
+	********
+	On Errror: Can Return -3, -5
+	"""
+	@endpoints.method(AddReportToUserRequestMessage, AddReportToUserResponseMessage, name='addReportToUser', path='addReportToUser', http_method='POST')
+	def addReportToUser(self, request):
+		isLoggedIn, userOb = User.validateLogIn(request.emailAddress, request.authToken)
+		if (not isLoggedIn):
+			return AddReportToUserResponseMessage(errorMessage = errorMessages[-5], errorNumber = -5)
+
+		Ratings.addReportToUser(userOb.key, request.reportType, request.comments)
+		return AddReportToUserResponseMessage(errorNumber = 200)
 
 
 

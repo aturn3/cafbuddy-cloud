@@ -185,21 +185,25 @@ class User(webapp2_extras.appengine.auth.models.User):
 	
 	"""
 	Determines if a given user exists in the database and is logged in 
-	Returns false if the user doesn't exist or the authentication token is bad (user isn't logged in)
-	Returns the userKey of the user object if the user is logged in
+	Returns false and None if the user doesn't exist or the authentication token is bad (user isn't logged in)
+	Returns true and the user object if the user is logged in
 	"""
 	@classmethod     
-	def validateLogIn(cls, emailAddress, authToken):    
+	def validateLogIn(cls, emailAddress, authToken):
+		#sanity checks
+		if (authToken == "" or emailAddress == "" or "@" not in emailAddress or "." not in emailAddress):
+			return [False, None]
+
 		#gets user object for authId and returns false if user doesn't exist in database
 		userOb = cls.get_by_auth_id("own:" + emailAddress)
 		if not userOb:
-			return False
+			return [False, None]
 		
 		#validates authentication token and returns userKey if user is logged in and false if not
 		userTokenOb = userOb.validate_token(userOb.key.id(), 'auth', authToken)
 		if userTokenOb:
-			return userOb.key.urlsafe()
-		return False
+			return [True, userOb]
+		return [False, None]
 
 	"""
 	Determines if a given user has verified their email address
