@@ -1,6 +1,7 @@
 """
 This file contains miscellaneous functions used throughout the APIs and classes
 """
+import datetime
 
 """
 Capitalizes the first letter of every word in the name
@@ -37,3 +38,18 @@ def getEmailDomainFromEmailAddress(emailAddress):
 	emailDomain = emailAddress[emailDomainIndx:]
 	return [True, emailDomain]
 
+"""
+Standard utility function used to convert strings received from the client into a datetime
+object in order to store it in the database
+Expects string in format 'Month Day Year Hour(24):Minute:Second' (e.g. 'January 03 2016 00:43:58')
+"""
+def stringToDateTimeObject(str):
+	return datetime.datetime.strptime(str, '%B %d %Y %H:%M:%S')
+
+"""
+Standard utility function used to convert datetime objects in the database into the standard
+format string expected by the client
+Returns string in format 'Month Day Year Hour(24):Minute:Second' (e.g. 'January 03 2016 00:43:58')
+"""
+def dateTimeOjectToString(dateTimeOb):
+	return dateTimeOb.strftime('%B %d %Y %H:%M:%S')

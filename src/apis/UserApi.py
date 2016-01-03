@@ -1,4 +1,3 @@
-#required for endpoints to work
 import endpoints
 from protorpc import messages
 from protorpc import message_types
@@ -14,7 +13,7 @@ Application Specific Error Numbers
 -2 => User is already registered
 -3 => Required fields are missing
 -4 => Email address must be a valid St. Olaf College email
--5 => User was unable to be validated as logged in
+-100 => User was unable to be validated as logged in
 """
 
 #The error messages that will be returned to their client and displayed to the user.
@@ -23,7 +22,7 @@ errorMessages = {
 	-2: "You are already registered.",
 	-3: "Required fields are missing.",
 	-4: "Email address must be a valid St. Olaf College email.",
-	-5: "You are not logged in."
+	-100: "You are not logged in."
 }
 
 
@@ -163,7 +162,7 @@ class UserApi(remote.Service):
 		
 	"""
 	Checks to see if the user is logged in (validates the authToken "symbolizing" their log in)
-	On Errror: Can Return -3, -5
+	On Errror: Can Return -3, -100
 	"""
 	@endpoints.method(ValidateUserRequestMessage, ValidateUserResponseMessage, name='validateUser', path='validateUser', http_method='POST')
 	def validateUser(self, request):
@@ -173,13 +172,13 @@ class UserApi(remote.Service):
 		#validates user
 		success, userOb = User.validateLogIn(request.emailAddress, request.authToken)
 		if (not success):
-			return ValidateUserResponseMessage(errorMessage = errorMessages[-5], errorNumber = -5)
+			return ValidateUserResponseMessage(errorMessage = errorMessages[-100], errorNumber = -100)
 		return ValidateUserResponseMessage(errorNumber = 200);
 
 
 	"""
 	Generates a new sign up verification token and sends a new verification email to the user associated with the specified
-	On Errror: Can Return -3, -5
+	On Errror: Can Return -3, -100
 	"""
 	@endpoints.method(SendNewEmailVerificationRequestMessage, SendNewEmailVerificationResponseMessage, name='sendNewEmailVerification', path='sendNewEmailVerification', http_method='POST')
 	def sendNewEmailVerification(self, request):
@@ -195,13 +194,13 @@ class UserApi(remote.Service):
 
 	"""
 	Sets a Positive rating on the logged in user
-	On Errror: Can Return -5
+	On Errror: Can Return -100
 	"""
 	@endpoints.method(IncrementPositiveRatingRequestMessage, IncrementPositiveRatingResponseMessage, name='incrementPositiveRating', path='incrementPositiveRating', http_method='POST')
 	def incrementPositiveRating(self, request):
 		isLoggedIn, userOb = User.validateLogIn(request.emailAddress, request.authToken)
 		if (not isLoggedIn):
-			return IncrementPositiveRatingResponseMessage(errorMessage = errorMessages[-5], errorNumber = -5)
+			return IncrementPositiveRatingResponseMessage(errorMessage = errorMessages[-100], errorNumber = -100)
 		
 		Ratings.addPositiveRating(userOb.key)
 		return IncrementPositiveRatingResponseMessage(errorNumber = 200)
@@ -209,13 +208,13 @@ class UserApi(remote.Service):
 
 	"""
 	Increments a Negative rating on the logged in user
-	On Errror: Can Return -5
+	On Errror: Can Return -100
 	"""
 	@endpoints.method(IncrementNegativeRatingRequestMessage, IncrementNegativeRatingResponseMessage, name='incrementNegativeRating', path='incrementNegativeRating', http_method='POST')
 	def incrementNegativeRating(self, request):
 		isLoggedIn, userOb = User.validateLogIn(request.emailAddress, request.authToken)
 		if (not isLoggedIn):
-			return IncrementNegativeRatingResponseMessage(errorMessage = errorMessages[-5], errorNumber = -5)
+			return IncrementNegativeRatingResponseMessage(errorMessage = errorMessages[-100], errorNumber = -100)
 		
 		Ratings.addNegativeRating(userOb.key)
 		return IncrementNegativeRatingResponseMessage(errorNumber = 200)
@@ -229,13 +228,13 @@ class UserApi(remote.Service):
 	1: Harrasment / Bullying
 	2: Unfriendly
 	********
-	On Errror: Can Return -3, -5
+	On Errror: Can Return -3, -100
 	"""
 	@endpoints.method(AddReportToUserRequestMessage, AddReportToUserResponseMessage, name='addReportToUser', path='addReportToUser', http_method='POST')
 	def addReportToUser(self, request):
 		isLoggedIn, userOb = User.validateLogIn(request.emailAddress, request.authToken)
 		if (not isLoggedIn):
-			return AddReportToUserResponseMessage(errorMessage = errorMessages[-5], errorNumber = -5)
+			return AddReportToUserResponseMessage(errorMessage = errorMessages[-100], errorNumber = -100)
 
 		Ratings.addReportToUser(userOb.key, request.reportType, request.comments)
 		return AddReportToUserResponseMessage(errorNumber = 200)

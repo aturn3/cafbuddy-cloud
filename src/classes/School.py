@@ -7,8 +7,12 @@ class School(ndb.Model):
 	emailDomain = ndb.StringProperty(required = True) # This is the non-name part of the email. E.g. @wisc.edu or @stolaf.edu
 	created = ndb.DateTimeProperty(auto_now_add = True, indexed = False)
 
-	"""
-	Creates a school object and puts it in the database
+	""" 
+	**********************************************
+	THIS SHOULD ONLY BE CALLED WHEN CREATING A NEW USER
+	**********************************************
+	Attemptes to get a school object from the database and, if it doesn't exist, c
+	creates a school object and puts it in the database
 	Guesses the name of the school based off of the given email address
 	The given email address can be email address of any student at that school
 	Returns [bool, schoolOb or None] depending on success

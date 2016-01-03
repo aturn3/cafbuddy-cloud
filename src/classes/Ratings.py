@@ -17,6 +17,15 @@ class Ratings(ndb.Model):
 	negativeRatingsDates = ndb.DateTimeProperty(repeated = True, indexed = False)
 	reports = ndb.StructuredProperty(Report, repeated = True, indexed = False)
 
+
+	"""
+	Validates that a user is in good standing with the community
+	Returns true always currently
+	"""
+	@classmethod
+	def userIsInGoodStanding(cls, userKey):
+		return True
+
 	"""
 	Adds a positive rating to the to the user specified by the given userKey
 	"""
