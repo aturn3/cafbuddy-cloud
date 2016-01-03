@@ -15,6 +15,9 @@ handlers:
   script: verification.application
   secure: always
 
+- url: /mealmatching
+  script: mealmatching.application
+  secure: always
 
 libraries:
 - name: endpoints

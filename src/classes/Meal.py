@@ -4,9 +4,9 @@ import datetime
 # from datetime import timedelta
 
 from Utilities import *
-from classes.User import User
-from classes.School import School
-from classes.Ratings import Ratings
+from User import User
+from School import School
+from Ratings import Ratings
 
 """
 Constant that defines the minimum length in minutes that a meal must be
@@ -71,10 +71,38 @@ class UnMatchedMeal(ndb.Model):
 		unMealOb.put()
 		return [True, unMealOb]
 
+	"""
+	Returns a list of meal objects for the given school
+	The list of results is ordered by startTime and broken on ties by createdTime
+	"""
+	@classmethod
+	def getAllUnmatchedMealsForSchool(cls, schoolKey):
+		#TODO: put back in cls.created after startRange to break ties once sure want that index
+		return cls.query(ancestor = schoolKey).order(cls.startRange).fetch()
+
+	"""
+	Removes the specified unmatched meal from the database
+	Returns: void
+	"""
+	@classmethod
+	def removeUnMatchedMeal(cls, unMatchedMealKey):
+		unMatchedMealKey.delete()
+
+	"""
+	Removes the list of specified unmatched meals from the database
+	Returns: void
+	"""
+	@classmethod
+	def removeUnMatchedMeal(cls, unMatchedMealKeyList):
+		if (unMatchedMealKeyList): #only delete keys if the list is not empty
+			ndb.delete(unMatchedMealKeyList)
 
 
-#each user has a copy of the meal as a descendant since the most important thing at this point is just easy access
-#to upcoming meals for the user
+
+
+# stored as a descendant of the school with all of the people involved in a repeated property
+# this works efficiently since each repeated property is stored as a seperate row in the
+# entity by property asc table so that cls.people == "1290jd304" returns results extremely efficiently
 class Meal(ndb.Model):
 	#0 = breakfast, 1 = lunch, 2 = dinner
 	mealType = ndb.IntegerProperty(required = True)
@@ -84,12 +112,64 @@ class Meal(ndb.Model):
 	schoolkey = ndb.KeyProperty(required = True, kind = School)
 	matchedDate = ndb.DateTimeProperty(auto_now_add = True)
 
+	"""
+	Creates a new matched meal from the list of unMatchedMeals
+	Returns the created new matched meal if successful or None if it is not
+	"""
+	@classmethod
+	def createNewMatchedMeal(cls, unMatchedMealObjectList):
+		if (not unMatchedMealObjectList):
+			return F
 
+	"""
+	Checks that the two given meal objects could create a valid meal together
+	Returns True or False
+	"""
+	@classmethod
+	def canCreateMatchedMeal(cls, firstUnMatchedMealObj, secondUnMatchedMealObj):
+		####### These are the meal arrangments that must be accounted for
+		#	yes:
+		#	1s 2s 1e 2e
+		#	2s 1s 2e 1e
+		# 	1s 2s 2e 1e
+		#	2s 1s 1e 2e
+		#	no:
+		#	1s 1e 2s 2e
+		#	2s 2e 1s 1e
+		######
 
-#check if the user has permission to create a meal (is verified email account)
-#check that the user is in good standing (ratings - do we actually want to store date so can know)
-#check if any of the current unmatched meals will satisfy the current meal request
-#create the meal for the user
+		#CHECK MEAL TYPE
+		if (firstUnMatchedMealObj.mealType != secondUnMatchedMealObj.mealType):
+			return False
+
+		#CHECK TIMING
+		#the important part is just to determine the overlap.. so figure out which meal starts first
+		earlierMeal = None
+		laterMeal = None
+		if (firstUnMatchedMealObj.startRange <= secondUnMatchedMealObj.startRange):
+			earlierMeal = firstUnMatchedMealObj
+			laterMeal = secondUnMatchedMealObj
+		else:
+			earlierMeal = secondUnMatchedMealObj
+			laterMeal = firstUnMatchedMealObj
+
+		#just need to make sure the later meal starts at least 30 minutes before the earlier meal ends 
+		#if this is the case, then have an overlap of the minimum length necessary between the meals
+		if (earlierMeal.endRange - datetime.timedelta(minutes = MINIMUM_MEAL_LENGTH) < laterMeal.startRange):
+			return False
+
+		###################
+		#  This should come last as it involves a database call!
+		##################
+		#CHECK COMMUNITY STANDING 
+		#lets verify that both creators of the meals are in good standing with the community
+		if (not Ratings.userIsInGoodStanding(firstUnMatchedMealObj.creator)):
+			return False
+		if (not Ratings.userIsInGoodStanding(secondUnMatchedMealObj.creator)):
+			return False
+
+		#if made it to this point everything looks good!
+		return True
 
 
 

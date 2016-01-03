@@ -42,3 +42,10 @@ class School(ndb.Model):
 		if (not success):
 			return None
 		return School.query(School.emailDomain == emailDomain).get()
+
+	"""
+	Returns a list of all of the school objects that are stored in the database
+	"""
+	@classmethod
+	def getAllSchoolObjects(cls):
+		return cls.query().fetch()
