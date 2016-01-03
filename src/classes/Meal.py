@@ -93,7 +93,7 @@ class UnMatchedMeal(ndb.Model):
 	Returns: void
 	"""
 	@classmethod
-	def removeUnMatchedMeal(cls, unMatchedMealKeyList):
+	def removeUnMatchedMeals(cls, unMatchedMealKeyList):
 		if (unMatchedMealKeyList): #only delete keys if the list is not empty
 			ndb.delete(unMatchedMealKeyList)
 
@@ -109,17 +109,61 @@ class Meal(ndb.Model):
 	startTime = ndb.DateTimeProperty(required = True)
 	numPeople = ndb.IntegerProperty(required = True)
 	people = ndb.KeyProperty(kind = User, repeated = True)
-	schoolkey = ndb.KeyProperty(required = True, kind = School)
 	matchedDate = ndb.DateTimeProperty(auto_now_add = True)
 
 	"""
 	Creates a new matched meal from the list of unMatchedMeals
+	Before creating the meal, it will be validated that the meal should be created
+	and it is possible to create a meal from the two given unmatched meals
+	Also deletes the unmatched meals from which the new meal was created
 	Returns the created new matched meal if successful or None if it is not
 	"""
 	@classmethod
-	def createNewMatchedMeal(cls, unMatchedMealObjectList):
-		if (not unMatchedMealObjectList):
-			return F
+	def createNewMeal(cls, firstUnMatchedMealObj, secondUnMatchedMealObj):
+		if (not canCreateMatchedMeal(firstUnMatchedMealObj, secondUnMatchedMealObj)):
+			return None
+
+		#figure out which meal starts first
+		earlierMeal = None
+		laterMeal = None
+		if (firstUnMatchedMealObj.startRange <= secondUnMatchedMealObj.startRange):
+			earlierMeal = firstUnMatchedMealObj
+			laterMeal = secondUnMatchedMealObj
+		else:
+			earlierMeal = secondUnMatchedMealObj
+			laterMeal = firstUnMatchedMealObj
+
+		#easiest way to determine timing is to just start the new meal at the beginning of the later meal
+		newStartTime = laterMeal.startRange
+		newPeople = [firstUnMatchedMealObj.creator, secondUnMatchedMealObj.creator]
+
+		# now we want to put the new meal in the database and 
+		mealOb = Meal(
+			parent = firstUnMatchedMealObj.key.parent(),
+			mealType = firstUnMatchedMealObj.mealType,
+			startTime = newStartTime,
+			numPeople = len(newPeople),
+			people = newPeople
+		)
+
+		try:
+			__insertNewMeal(mealOb, firstUnMatchedMealObj, secondUnMatchedMealObj)
+		except TransactionFailedError:
+			return None
+
+		return mealOb
+
+	"""
+	THIS METHOD SHOULD ONLY BE ACCESSED THROUGH THE createNewMeal method!!
+	This method is here only so that the new meal and old meals
+	are all inserted and deleted at once in a transaction so that if one fails they all fail
+	"""
+	@classmethod
+	@ndb.transactional
+	def __insertNewMeal(cls, newMealObj, firstUnMatchedMealObj, secondUnMatchedMealObj):
+		newMealObj.put()
+		UnMatchedMeal.removeUnMatchedMeals([firstUnMatchedMealObj.key, secondUnMatchedMealObj.key])
+
 
 	"""
 	Checks that the two given meal objects could create a valid meal together
@@ -137,6 +181,10 @@ class Meal(ndb.Model):
 		#	1s 1e 2s 2e
 		#	2s 2e 1s 1e
 		######
+
+		#CHECK SANITY
+		if (firstUnMatchedMealObj is None) or (secondUnMatchedMealObj is None):
+			return False 
 
 		#CHECK MEAL TYPE
 		if (firstUnMatchedMealObj.mealType != secondUnMatchedMealObj.mealType):
@@ -158,18 +206,36 @@ class Meal(ndb.Model):
 		if (earlierMeal.endRange - datetime.timedelta(minutes = MINIMUM_MEAL_LENGTH) < laterMeal.startRange):
 			return False
 
+		#decided I dont need to do this last part here since its already checked on meal creation
 		###################
 		#  This should come last as it involves a database call!
 		##################
 		#CHECK COMMUNITY STANDING 
 		#lets verify that both creators of the meals are in good standing with the community
-		if (not Ratings.userIsInGoodStanding(firstUnMatchedMealObj.creator)):
-			return False
-		if (not Ratings.userIsInGoodStanding(secondUnMatchedMealObj.creator)):
-			return False
+		# if (not Ratings.userIsInGoodStanding(firstUnMatchedMealObj.creator)):
+		# 	return False
+		# if (not Ratings.userIsInGoodStanding(secondUnMatchedMealObj.creator)):
+		# 	return False
 
 		#if made it to this point everything looks good!
 		return True
+
+	"""
+	Removes the specified matched meal from the database
+	Returns: void
+	"""
+	@classmethod
+	def removeMeal(cls, mealKey):
+		mealKey.delete()
+
+	"""
+	Removes the list of specified unmatched meals from the database
+	Returns: void
+	"""
+	@classmethod
+	def removeMeals(cls, mealKeyList):
+		if (mealKeyList): #only delete keys if the list is not empty
+			ndb.delete(mealKeyList)
 
 
 
