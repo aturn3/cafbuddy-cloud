@@ -1,0 +1,6 @@
+indexes:
+
+- kind: UnMatchedMeal
+  ancestor: yes
+  properties:
+  - name: startRange

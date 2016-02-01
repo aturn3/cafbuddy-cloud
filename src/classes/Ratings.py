@@ -50,8 +50,25 @@ class Ratings(ndb.Model):
 	Adds a report (bad) to the user specified in the userKey
 	"""
 	@classmethod
-	def addReportToUser(cls, userKey, reportType, comments = ""):
-		ratingOb = cls.getOrCreateRatingsObjectForUser(userKey)
+	def addReportToUser(cls, userOb, reportType, comments = ""):
+		# first lets email Turnblad and I
+		# mailSender = "Caf Buddy <noreply@cafbuddy.appspotmail.com>"
+		# mailTo = "jforster959@gmail.com, aturnblad3@gmail.com"
+		# mailSubject = "User " + userOb.firstName + " " + userOb.lastName + " Was Reported"
+		# mailBody = "User " + userOb.firstName + " " + userOb.lastName + ""  "" ",\n\n Welcome to Caf Buddy!"
+		# mailBody += "\n\n We just need to make sure you are part of the St. Olaf community, so you just need to quickly verify your account."
+		# mailBody += " Click the following link or copy and paste it into your favorite browser and you will be all set to meet tons of new people and never eat alone again."
+		# mailBody += "\n\n http://cafbuddy.appspot.com/verifyemail?email=" + emailAddress + "&signupTok=" + signupToken
+		# mailBody += "\n\n If you did not sign up for Caf Buddy or were not expecting this email then you can safely ignore it."
+		# mail.send_mail(
+		# 	sender = mailSender,
+		# 	to = mailTo,
+		# 	subject = mailSubject,
+		# 	body = mailBody
+		# )
+
+		# then lets add the report to the user
+		ratingOb = cls.getOrCreateRatingsObjectForUser(userOb.key)
 		newReport = Report(
 			reportType = reportType,
 			comments = comments

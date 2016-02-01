@@ -236,7 +236,7 @@ class UserApi(remote.Service):
 		if (not isLoggedIn):
 			return AddReportToUserResponseMessage(errorMessage = errorMessages[-100], errorNumber = -100)
 
-		Ratings.addReportToUser(userOb.key, request.reportType, request.comments)
+		Ratings.addReportToUser(userOb, request.reportType, request.comments)
 		return AddReportToUserResponseMessage(errorNumber = 200)
 
 
