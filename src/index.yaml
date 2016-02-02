@@ -1,6 +1,19 @@
 indexes:
 
+# Used for getting all unmatched meals at a given school
 - kind: UnMatchedMeal
   ancestor: yes
   properties:
   - name: startRange
+
+# Used for getting all unmatched meals for a given user
+- kind: UnMatchedMeal
+  properties:
+  - name: creator
+  - name: startRange
+
+# Used for getting all matched meals for a given user
+- kind: Meal
+  properties:
+  - name: people
+  - name: startTime

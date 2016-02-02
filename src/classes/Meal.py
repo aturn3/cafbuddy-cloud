@@ -1,4 +1,5 @@
 from google.appengine.ext import ndb
+from google.appengine.ext.db import TransactionFailedError
 
 import datetime
 
@@ -76,7 +77,14 @@ class UnMatchedMeal(ndb.Model):
     def getAllUnmatchedMealsForSchool(cls, schoolKey):
         return cls.query(ancestor = schoolKey).order(cls.startRange).fetch()
 
-
+    """
+    Gets all the upcoming meals that have been confirmed for a given user
+    Returns a list of Meal objects ordered by the date they occur
+    """
+    @classmethod
+    def getUpcomingUnMatchedMealsForUser(cls, userKey):
+        nowTime = datetime.datetime.now();
+        return cls.query(cls.creator == userKey, cls.startRange >= nowTime).order(cls.startRange).fetch()
 
     """
     Removes the specified unmatched meal from the database
@@ -93,14 +101,10 @@ class UnMatchedMeal(ndb.Model):
     @classmethod
     def removeUnMatchedMeals(cls, unMatchedMealKeyList):
         if (unMatchedMealKeyList): #only delete keys if the list is not empty
-            ndb.delete(unMatchedMealKeyList)
+            ndb.delete_multi(unMatchedMealKeyList)
 
 
 
-
-# stored as a descendant of the school with all of the people involved in a repeated property
-# this works efficiently since each repeated property is stored as a seperate row in the
-# entity by property asc table so that cls.people == "1290jd304" returns results extremely efficiently
 class Meal(ndb.Model):
     #0 = breakfast, 1 = lunch, 2 = dinner
     mealType = ndb.IntegerProperty(required = True)
@@ -146,7 +150,7 @@ class Meal(ndb.Model):
         )
 
         try:
-            __insertNewMeal(mealOb, firstUnMatchedMealObj, secondUnMatchedMealObj)
+            cls.__insertNewMeal(mealOb, firstUnMatchedMealObj, secondUnMatchedMealObj)
         except TransactionFailedError:
             return None
 
@@ -158,11 +162,24 @@ class Meal(ndb.Model):
     are all inserted and deleted at once in a transaction so that if one fails they all fail
     """
     @classmethod
-    @ndb.transactional
+    @ndb.transactional(xg = True)
     def __insertNewMeal(cls, newMealObj, firstUnMatchedMealObj, secondUnMatchedMealObj):
         newMealObj.put()
         UnMatchedMeal.removeUnMatchedMeals([firstUnMatchedMealObj.key, secondUnMatchedMealObj.key])
 
+
+    """
+    Gets all the upcoming meals that have been confirmed for a given user
+    Returns a list of Meal objects ordered by the date they occur
+    """
+    @classmethod
+    def getUpcomingMealsForUser(cls, userKey):
+        nowTime = datetime.datetime.now();
+        return cls.query(cls.people == userKey, cls.startTime >= nowTime).order(cls.startTime).fetch()
+
+    @classmethod
+    def getUpcomingMealsForUserInRange(cls, userKey, startRangeDateOb, endRangeDateOb):
+        return cls.query(cls.people == userKey, cls.startTime >= startRangeDateOb, cls.startTime <= endRangeDateOb).order(cls.startTime).fetch()
 
     """
     Removes the specified matched meal from the database
@@ -179,7 +196,7 @@ class Meal(ndb.Model):
     @classmethod
     def removeMeals(cls, mealKeyList):
         if (mealKeyList): #only delete keys if the list is not empty
-            ndb.delete(mealKeyList)
+            ndb.delete_multi(mealKeyList)
 
 
 

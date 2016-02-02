@@ -5,7 +5,7 @@ import datetime
 from classes.Utilities import *
 from classes.School import School
 from classes.Meal import *
-
+from classes.User import User
 
 
 class MatchMeals(webapp2.RequestHandler):
@@ -15,7 +15,7 @@ class MatchMeals(webapp2.RequestHandler):
         schools = School.getAllSchoolObjects()
         for school in schools:
             #get all the meals for a particular school and go through meals one by one
-            unMatcheMealsToDelete = []
+            unMatchedMealsToDelete = []
             unMatchedMealsToMatch = []
             unMatchedMeals = UnMatchedMeal.getAllUnmatchedMealsForSchool(school.key)
             indx = 0
@@ -23,7 +23,7 @@ class MatchMeals(webapp2.RequestHandler):
             while (indx < numUnMatchedMeals):
                 #if the meal has already "happened" but never got matched, we should delete it, so add it to the list
                 if (unMatchedMeals[indx].endRange < currentTime):
-                    unMatcheMealsToDelete.append(unMatchedMeals[indx])
+                    unMatchedMealsToDelete.append(unMatchedMeals[indx])
                     indx += 1
                 #else lets try to match this meal
                 else:
@@ -53,14 +53,16 @@ class MatchMeals(webapp2.RequestHandler):
                     # else weren't able to find enough matches for a given meal so take no action and just skip it :/
                     indx += 1
 
-            #here is where we will want to notify all people of unmatched meals and then delete them
+
+           ###############################
+           # This section is just debugging info that could really be deleted
+           ################################         
             self.response.write("<h1> To Delete </h1>");
-            for todelete in unMatcheMealsToDelete:
+            for todelete in unMatchedMealsToDelete:
                 self.response.write("<p> Meal Type : ")
                 self.response.write(todelete.mealType)
                 self.response.write("   " + dateTimeOjectToString(todelete.startRange) + " - " + dateTimeOjectToString(todelete.endRange) + "     Created: " + dateTimeOjectToString(todelete.created) + "</p>")
 
-            #heres where we want to notify those with matched meals and then create the actual meal
             self.response.write("<h1> To Meal </h1>");
             mealNum = 0
             for theMatchedMeals in unMatchedMealsToMatch:
@@ -72,4 +74,33 @@ class MatchMeals(webapp2.RequestHandler):
                     self.response.write("   " + dateTimeOjectToString(theMatchedMeal.startRange) + " - " + dateTimeOjectToString(theMatchedMeal.endRange) + "     Created: " + dateTimeOjectToString(theMatchedMeal.created) + "</p>")
                     mealNum += 1
 
+            # suc, userOb = User.validateLogIn("***REMOVED***", "***REMOVED***")
+            # ummls = UnMatchedMeal.getUpcomingUnMatchedMealsForUser(userOb.key.urlsafe())
+            # self.response.write("<h1> Unmatched Meals </h1>")
+            # for um in ummls:
+            #     self.response.write("<p>")
+            #     self.response.write(um.startRange)
+            #     self.response.write("</p>")
+
+            # mmls = Meal.getUpcomingMealsForUser(userOb.key.urlsafe())
+            # self.response.write("<h1> Matched Meals </h1>")
+            # for um in mmls:
+            #     self.response.write("<p>")
+            #     self.response.write(um.startTime)
+            #     self.response.write("</p>")
+
+
+        #delete the meals that are past and never got matched
+        unMatchedMealKeysToDelete = [theMeal.key for theMeal in unMatchedMealsToDelete]
+        UnMatchedMeal.removeUnMatchedMeals(unMatchedMealKeysToDelete)
+
+        #for the meals that can be paired... pair them
+        for theMatchedMeals in unMatchedMealsToMatch:
+            firstMeal, secondMeal = theMatchedMeals
+            Meal.createNewMeal(firstMeal, secondMeal)
+
+
+
 application = webapp2.WSGIApplication([('/mealmatching', MatchMeals)], debug = False)
+
+
