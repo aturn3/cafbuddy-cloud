@@ -109,10 +109,10 @@ class UserApi(remote.Service):
 	"""
 	Creates a new user with all of its attributes and logs in the user
 	On Success: Returns the authToken necessary to validate the user and log out the user
-	On Error: Can Return -3, -4
+	On Error: -2, -3, -4
 	"""
 	@endpoints.method(SignUpUserRequestMessage, SignUpUserResponseMessage, name='signupUser', path='signupUser', http_method='POST')
-	def signupUser(self, request):        
+	def signupUser(self, request):
 		if (request.firstName == "") or (request.lastName == "") or (request.password == "") or (request.emailAddress == ""):
 			return SignUpUserResponseMessage(errorMessage = errorMessages[-3], errorNumber = -3)
 
@@ -129,7 +129,7 @@ class UserApi(remote.Service):
 	"""
 	Logs in a user using their password and email
 	On Success: Returns the authToken necessary to validate the user and log out the user
-	On Error: Can Return -3
+	On Error: -3
 	"""
 	@endpoints.method(LogInUserRequestMessage, LogInUserResponseMessage, name='loginUser', path='loginUser', http_method='POST')
 	def loginUser(self, request):
@@ -146,7 +146,7 @@ class UserApi(remote.Service):
 		
 	"""
 	Logs out a user, deleting their authToken used to validate their login from the database
-	On Error: Can Return -3, 404
+	On Error: -3, 404
 	"""
 	@endpoints.method(LogOutUserRequestMessage, LogOutUserResponseMessage, name='logoutUser', path='logoutUser', http_method='POST')    
 	def logoutUser(self,request):
@@ -162,7 +162,7 @@ class UserApi(remote.Service):
 		
 	"""
 	Checks to see if the user is logged in (validates the authToken "symbolizing" their log in)
-	On Errror: Can Return -3, -100
+	On Errror: -3, -100
 	"""
 	@endpoints.method(ValidateUserRequestMessage, ValidateUserResponseMessage, name='validateUser', path='validateUser', http_method='POST')
 	def validateUser(self, request):
@@ -178,7 +178,7 @@ class UserApi(remote.Service):
 
 	"""
 	Generates a new sign up verification token and sends a new verification email to the user associated with the specified
-	On Errror: Can Return -3, -100
+	On Errror: -3, -100
 	"""
 	@endpoints.method(SendNewEmailVerificationRequestMessage, SendNewEmailVerificationResponseMessage, name='sendNewEmailVerification', path='sendNewEmailVerification', http_method='POST')
 	def sendNewEmailVerification(self, request):
@@ -194,7 +194,7 @@ class UserApi(remote.Service):
 
 	"""
 	Sets a Positive rating on the logged in user
-	On Errror: Can Return -100
+	On Errror: -100
 	"""
 	@endpoints.method(IncrementPositiveRatingRequestMessage, IncrementPositiveRatingResponseMessage, name='incrementPositiveRating', path='incrementPositiveRating', http_method='POST')
 	def incrementPositiveRating(self, request):
@@ -208,7 +208,7 @@ class UserApi(remote.Service):
 
 	"""
 	Increments a Negative rating on the logged in user
-	On Errror: Can Return -100
+	On Errror: -100
 	"""
 	@endpoints.method(IncrementNegativeRatingRequestMessage, IncrementNegativeRatingResponseMessage, name='incrementNegativeRating', path='incrementNegativeRating', http_method='POST')
 	def incrementNegativeRating(self, request):
@@ -228,7 +228,7 @@ class UserApi(remote.Service):
 	1: Harrasment / Bullying
 	2: Unfriendly
 	********
-	On Errror: Can Return -3, -100
+	On Errror: -3, -100
 	"""
 	@endpoints.method(AddReportToUserRequestMessage, AddReportToUserResponseMessage, name='addReportToUser', path='addReportToUser', http_method='POST')
 	def addReportToUser(self, request):

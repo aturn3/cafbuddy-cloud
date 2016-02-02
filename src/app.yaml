@@ -3,6 +3,8 @@ version: 1
 runtime: python27
 api_version: 1
 threadsafe: true
+#max_idle_instances: 2
+#max_concurrent_requests: 40
 
 handlers:
 # Endpoints handler: Must be /_ah/spi. 
