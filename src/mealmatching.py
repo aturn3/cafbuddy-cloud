@@ -33,7 +33,7 @@ class MatchMeals(webapp2.RequestHandler):
                     # continue while we have fewer matched meals than we want, we haven't gone through all unmatched meals
                     # and we haven't hit the point where any meals after that wont match because their start time is later than
                     # the end time of the meal we are looking at minus the minimum length of a meal
-                    while (numMatched < unMatchedMeals[indx].numPeople and searchIndx < numUnMatchedMeals and (unMatchedMeals[indx].endRange - datetime.timedelta(minutes = MINIMUM_MEAL_LENGTH)) > unMatchedMeals[searchIndx].startRange):
+                    while (numMatched < unMatchedMeals[indx].numPeople and searchIndx < numUnMatchedMeals and (unMatchedMeals[indx].endRange - datetime.timedelta(minutes = MINIMUM_MEAL_LENGTH)) >= unMatchedMeals[searchIndx].startRange):
                         mealTypesMatch = (unMatchedMeals[indx].mealType == unMatchedMeals[searchIndx].mealType)
                         numPeopleMatch = (unMatchedMeals[searchIndx].numPeople == unMatchedMeals[indx].numPeople)
                         notSameCreator = (unMatchedMeals[searchIndx].creator != unMatchedMeals[indx].creator)
