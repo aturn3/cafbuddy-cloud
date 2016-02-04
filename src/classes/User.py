@@ -151,7 +151,7 @@ class User(webapp2_extras.appengine.auth.models.User):
 
 	"""
 	Logs a user in based on their authId and password
-	On Sucess: Returns authToken used to validate the log in in future times
+	On Sucess: Returns authToken used to validate the log in in future times and the userOb
 	On Failure: Returns appropriate error message
 	"""
 	@classmethod
@@ -162,10 +162,10 @@ class User(webapp2_extras.appengine.auth.models.User):
 			
 			#generates new auth token to be used in future validations until logged out
 			authToken = userOb.create_auth_token(userOb.key.id())
-			return [True, authToken]
+			return [True, authToken, userOb]
 			
 		except (InvalidAuthIdError, InvalidPasswordError):
-			return [False, -1]
+			return [False, -1, None]
 	
 	""" 
 	Logs a user out by deleting the authToken associated with its current logged in state from the database 

@@ -76,6 +76,8 @@ class LogInUserResponseMessage(messages.Message):
 	errorNumber = messages.IntegerField(1, required = False)
 	errorMessage = messages.StringField(2, required = False)
 	authToken = messages.StringField(3, required = False)
+	firstName = messages.StringField(4, required = False)
+	lastName = messages.StringField(5, required = False)
 
 class LogOutUserResponseMessage(messages.Message):
 	errorNumber = messages.IntegerField(1, required = False)
@@ -103,7 +105,7 @@ class AddReportToUserResponseMessage(messages.Message):
 
 
 
-@endpoints.api(name='userService', version='v1.011', description='API for working with a User', hostname='cafbuddy.appspot.com')  
+@endpoints.api(name='userService', version='v1.0', description='API for working with a User', hostname='cafbuddy.appspot.com')  
 class UserApi(remote.Service):
 
 	"""
@@ -137,11 +139,11 @@ class UserApi(remote.Service):
 			return LogInUserResponseMessage(errorMessage = errorMessages[-3], errorNumber = -3)
 		
 		#calls user backend function, returns token of user
-		success, authTokOrErrorNum = User.logIn(request.emailAddress, request.password)
+		success, authTokOrErrorNum, userObOrNone = User.logIn(request.emailAddress, request.password)
 		
 		if (not success):
 			return LogInUserResponseMessage(errorMessage = errorMessages[authTokOrErrorNum], errorNumber = authTokOrErrorNum)
-		return LogInUserResponseMessage(authToken = authTokOrErrorNum, errorNumber = 200)
+		return LogInUserResponseMessage(authToken = authTokOrErrorNum, firstName = userObOrNone.firstName, lastName = userObOrNone.lastName, errorNumber = 200)
 		
 		
 	"""

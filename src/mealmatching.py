@@ -36,8 +36,8 @@ class MatchMeals(webapp2.RequestHandler):
                     while (numMatched < unMatchedMeals[indx].numPeople and searchIndx < numUnMatchedMeals and (unMatchedMeals[indx].endRange - datetime.timedelta(minutes = MINIMUM_MEAL_LENGTH)) > unMatchedMeals[searchIndx].startRange):
                         mealTypesMatch = (unMatchedMeals[indx].mealType == unMatchedMeals[searchIndx].mealType)
                         numPeopleMatch = (unMatchedMeals[searchIndx].numPeople == unMatchedMeals[indx].numPeople)
-                        # notSameCreator = (unMatchedMeals[searchIndx].creator != unMatchedMeals[indx].creator)
-                        if (mealTypesMatch and numPeopleMatch):
+                        notSameCreator = (unMatchedMeals[searchIndx].creator != unMatchedMeals[indx].creator)
+                        if (mealTypesMatch and numPeopleMatch and notSameCreator):
                             numMatched += 1
                             matchedMeals.append([searchIndx, unMatchedMeals[searchIndx]])
                         searchIndx += 1
