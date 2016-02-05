@@ -65,6 +65,14 @@ class DeleteUnMatchedMealRequestMessage(messages.Message):
     emailAddress = messages.StringField(2, required = True)
     mealKey = messages.StringField(3, required = True)
 
+class EditUnMatchedMealRequestMessage(messages.Message):
+    authToken = messages.StringField(1, required = True)
+    emailAddress = messages.StringField(2, required = True)
+    mealKey = messages.StringField(3, required = True)
+    mealType = messages.IntegerField(4, required = False)
+    startRange = messages.StringField(5, required = False)
+    endRange = messages.StringField(6, required = False)
+    numPeople = messages.IntegerField(7, required = False)
 
 """
 Response ProtoRPC message classes
@@ -116,6 +124,10 @@ class GetMatchedMealsInRangeResponseMessage(messages.Message):
     matchedMeals = messages.MessageField(MatchedMealMessage, 3, repeated = True)
 
 class DeleteUnMatchedMealResponseMessage(messages.Message):
+    errorNumber = messages.IntegerField(1, required = False)
+    errorMessage = messages.StringField(2, required = False)
+
+class EditUnMatchedMealResponseMessage(messages.Message):
     errorNumber = messages.IntegerField(1, required = False)
     errorMessage = messages.StringField(2, required = False)
 
@@ -224,6 +236,38 @@ class MealApi(remote.Service):
         UnMatchedMeal.removeUnMatchedMeal(ndb.Key(urlsafe=request.mealKey))
 
         return DeleteUnMatchedMealResponseMessage(errorNumber = 200)
+
+    """
+    Edits the specified unmatched meal
+    On Error: -100, -2, -3, -4
+    """
+    @endpoints.method(EditUnMatchedMealRequestMessage, EditUnMatchedMealResponseMessage, name='editUnMatchedMeal', path='editUnMatchedMeal', http_method='POST')
+    def editUnMatchedMeal(self, request):
+        isLoggedIn, userOb = User.validateLogIn(request.emailAddress, request.authToken)
+        if (not isLoggedIn):
+            return EditUnMatchedMealResponseMessage(errorMessage = errorMessages[-100], errorNumber = -100)
+
+        # assume that none of them should be edited
+        theMealType = None
+        theStartRange = None
+        theEndRange = None
+        theNumPeople = None
+
+        #if they should be edited
+        if (request.mealType != None):
+            theMealType = request.mealType
+        if (request.startRange != None):
+            theStartRange = stringToDateTimeObject(request.startRange)
+        if (request.endRange != None):
+            theEndRange = stringToDateTimeObject(request.endRange)
+        if (request.numPeople != None):
+            theNumPeople = request.numPeople
+        
+        success, errorNum = UnMatchedMeal.editUnMatchedMeal(ndb.Key(urlsafe=request.mealKey), mealType = theMealType, startRange = theStartRange, endRange = theEndRange, numPeople = theNumPeople)
+
+        if (not success):
+            return EditUnMatchedMealResponseMessage(errorMessage = errorMessages[errorNum], errorNumber = errorNum)
+        return EditUnMatchedMealResponseMessage(errorNumber = 200)
 
 
     """
