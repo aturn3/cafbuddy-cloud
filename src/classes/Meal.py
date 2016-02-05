@@ -87,6 +87,54 @@ class UnMatchedMeal(ndb.Model):
         return cls.query(cls.creator == userKey, cls.startRange >= nowTime).order(cls.startRange).fetch()
 
     """
+    Edits the specified details (nonempty arguments) of the unMatchedMeal
+    Returns: [SuccessBoolean, ErrorCode] ErroCode: -4, -3, -2
+    """
+    @classmethod
+    def editUnMatchedMeal(cls, mealKey, mealType = None, startRange = None, endRange = None, numPeople = None):
+        mealOb = mealKey.get()
+        # edit meal type if it shoud be and valid meal type
+        if (mealType != None):
+            if (mealType < 0 or mealType > 2):
+                return [False, -4]
+            mealOb.mealType = mealType
+
+        # edit the start range of the meal if should and valid start range
+        if (startRange != None):
+            #meal is long enough to make sense
+            # if not editing the end range, make sense with current end range?
+            if (endRange == None):
+                if (startRange > mealOb.endRange - datetime.timedelta(minutes = MINIMUM_MEAL_LENGTH)):
+                    return [False, -2]
+            # are editing the end range, make sense with the end range they want?
+            else:
+                if (startRange > endRange - datetime.timedelta(minutes = MINIMUM_MEAL_LENGTH)):
+                    return [False, -2]
+            #did meal start range already happen?
+            if (startRange <= datetime.datetime.now()):
+                return [False, -2]
+            mealOb.startRange = startRange
+
+        # edit the end range of the meal if should and valid end range
+        if (endRange != None):
+            #meal is long enough to make sense
+            # if not editing the start range, make sense with current end start?
+            if (startRange == None):
+                if (mealOb.startRange > endRange - datetime.timedelta(minutes = MINIMUM_MEAL_LENGTH)):
+                    return [False, -2]
+            #dont have to check if editing start range since already got that above if they are
+            mealOb.endRange = endRange
+        
+        #edit num people if it should be and valid number of people
+        if (numPeople != None):
+            if (numPeople < 2):
+                return [False, -3]
+            mealOb.numPeople = numPeople
+            
+        mealOb.put()
+        return [True, None]
+
+    """
     Removes the specified unmatched meal from the database
     Returns: void
     """
