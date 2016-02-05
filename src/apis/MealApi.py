@@ -60,6 +60,12 @@ class GetMatchedMealsInRangeRequestMessage(messages.Message):
     startRange = messages.StringField(3, required = True)
     endRange = messages.StringField(4, required = True)
 
+class DeleteUnMatchedMealRequestMessage(messages.Message):
+    authToken = messages.StringField(1, required = True)
+    emailAddress = messages.StringField(2, required = True)
+    mealKey = messages.StringField(3, required = True)
+
+
 """
 Response ProtoRPC message classes
 """
@@ -69,7 +75,8 @@ class UnMatchedMealMessage(messages.Message):
     endRange = messages.StringField(3, required = True)
     numPeople = messages.IntegerField(4, required = True)
     created = messages.StringField(5, required = True)
-    creatorKey = messages.StringField(6, required = False)
+    creatorKey = messages.StringField(6, required = True)
+    mealKey = messages.StringField(7, required = True)
 
 class MatchedMealMessage(messages.Message):
     mealType = messages.IntegerField(1, required = True)
@@ -77,6 +84,7 @@ class MatchedMealMessage(messages.Message):
     numPeople = messages.IntegerField(3, required = True)
     peopleKeys = messages.StringField(4, repeated = True)
     matchedDate = messages.StringField(5, required = True)
+    mealKey = messages.StringField(6, required = True)
 
 """
 Response ProtoRPC messages
@@ -106,6 +114,11 @@ class GetMatchedMealsInRangeResponseMessage(messages.Message):
     errorNumber = messages.IntegerField(1, required = False)
     errorMessage = messages.StringField(2, required = False)
     matchedMeals = messages.MessageField(MatchedMealMessage, 3, repeated = True)
+
+class DeleteUnMatchedMealResponseMessage(messages.Message):
+    errorNumber = messages.IntegerField(1, required = False)
+    errorMessage = messages.StringField(2, required = False)
+
 
 @endpoints.api(name='mealService', version='v1.0', description='API for dealing with meals', hostname='cafbuddy.appspot.com')  
 class MealApi(remote.Service):
@@ -198,6 +211,20 @@ class MealApi(remote.Service):
 
         return GetMatchedMealsInRangeResponseMessage(errorNumber = 200, matchedMeals = mealsInRangeMessageList)
 
+    """
+    Deletes the specified unmatched meal
+    On Error: -100 
+    """
+    @endpoints.method(DeleteUnMatchedMealRequestMessage, DeleteUnMatchedMealResponseMessage, name='deleteUnMatchedMeal', path='deleteUnMatchedMeal', http_method='POST')
+    def deleteUnMatchedMeal(self, request):
+        isLoggedIn, userOb = User.validateLogIn(request.emailAddress, request.authToken)
+        if (not isLoggedIn):
+            return DeleteUnMatchedMealResponseMessage(errorMessage = errorMessages[-100], errorNumber = -100)
+
+        UnMatchedMeal.removeUnMatchedMeal(ndb.Key(urlsafe=request.mealKey))
+
+        return DeleteUnMatchedMealResponseMessage(errorNumber = 200)
+
 
     """
     Private methods
@@ -213,7 +240,8 @@ class MealApi(remote.Service):
                 endRange = dateTimeOjectToString(theMeal.endRange),
                 numPeople = theMeal.numPeople,
                 created = dateTimeOjectToString(theMeal.created),
-                creatorKey = theMeal.creator.urlsafe()
+                creatorKey = theMeal.creator.urlsafe(),
+                mealKey = theMeal.key.urlsafe()
             )
             unMatchedMealsMessageList.append(theUnMatchedMatchedMeal)
         return unMatchedMealsMessageList
@@ -227,7 +255,8 @@ class MealApi(remote.Service):
                 startTime = dateTimeOjectToString(theMeal.startTime),
                 numPeople = theMeal.numPeople,
                 peopleKeys = [personKey.urlsafe() for personKey in theMeal.people],
-                matchedDate = dateTimeOjectToString(theMeal.matchedDate)
+                matchedDate = dateTimeOjectToString(theMeal.matchedDate),
+                mealKey = theMeal.key.urlsafe()
             )
             matchedMealsMessageList.append(theMatchedMeal)
         return matchedMealsMessageList
