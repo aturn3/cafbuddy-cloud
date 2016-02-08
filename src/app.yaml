@@ -21,8 +21,14 @@ handlers:
   script: mealmatching.application
   secure: always
 
+- url: /sendnotification
+  script: send_notification.application
+  secure: always
+
 libraries:
 - name: endpoints
   version: latest
 - name: webapp2
   version: "2.5.2"
+- name: ssl
+  version: latest
