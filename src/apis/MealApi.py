@@ -77,6 +77,11 @@ class EditUnMatchedMealRequestMessage(messages.Message):
 """
 Response ProtoRPC message classes
 """
+class UserMessage(messages.Message):
+    userKey = messages.StringField(1, required = True)
+    firstName = messages.StringField(2, required = False)
+    lastName = messages.StringField(3, required = False)
+
 class UnMatchedMealMessage(messages.Message):
     mealType = messages.IntegerField(1, required = True)
     startRange = messages.StringField(2, required = True)
@@ -90,7 +95,7 @@ class MatchedMealMessage(messages.Message):
     mealType = messages.IntegerField(1, required = True)
     startTime = messages.StringField(2, required = True)
     numPeople = messages.IntegerField(3, required = True)
-    peopleKeys = messages.StringField(4, repeated = True)
+    people = messages.MessageField(UserMessage, 4, repeated = True)
     matchedDate = messages.StringField(5, required = True)
     mealKey = messages.StringField(6, required = True)
 
@@ -205,6 +210,7 @@ class MealApi(remote.Service):
 
     """
     Gets all the matched meals (meals that have been paired with others) within the specified date range
+    Since the response is likely used for showing a history, the response also includes the first and last name of all users in the meal
     On Error: -5, -100
     """
     @endpoints.method(GetMatchedMealsInRangeRequestMessage, GetMatchedMealsInRangeResponseMessage, name='getMatchedMealsInRange', path='getMatchedMealsInRange', http_method='POST')
@@ -219,7 +225,7 @@ class MealApi(remote.Service):
             return GetMatchedMealsInRangeResponseMessage(errorMessage = errorMessages[-5], errorNumber = -5)
 
         mealListInRange = Meal.getUpcomingMealsForUserInRange(userOb.key, startRangeDateOb, endRangeDateOb)
-        mealsInRangeMessageList = self.convertMatchedListToMatchedMessageList(mealListInRange)
+        mealsInRangeMessageList = self.convertMatchedListToMatchedMessageListWithUserNames(mealListInRange)
 
         return GetMatchedMealsInRangeResponseMessage(errorNumber = 200, matchedMeals = mealsInRangeMessageList)
 
@@ -298,7 +304,25 @@ class MealApi(remote.Service):
                 mealType = theMeal.mealType,
                 startTime = dateTimeOjectToString(theMeal.startTime),
                 numPeople = theMeal.numPeople,
-                peopleKeys = [personKey.urlsafe() for personKey in theMeal.people],
+                people = [UserMessage(userKey = personKey.urlsafe()) for personKey in theMeal.people],
+                matchedDate = dateTimeOjectToString(theMeal.matchedDate),
+                mealKey = theMeal.key.urlsafe()
+            )
+            matchedMealsMessageList.append(theMatchedMeal)
+        return matchedMealsMessageList
+
+
+    @classmethod
+    def convertMatchedListToMatchedMessageListWithUserNames(cls, matchedMealsList):
+        matchedMealsMessageList = []
+        for theMeal in matchedMealsList:
+            #need to get the user objects for all the users in the meal
+            keyStringToUserOb = User.getUserObjectsForKeyList(theMeal.people)
+            theMatchedMeal = MatchedMealMessage(
+                mealType = theMeal.mealType,
+                startTime = dateTimeOjectToString(theMeal.startTime),
+                numPeople = theMeal.numPeople,
+                people = [UserMessage(userKey = stringKey, firstName = userOb.firstName, lastName = userOb.lastName) for stringKey, userOb in keyStringToUserOb.iteritems()],
                 matchedDate = dateTimeOjectToString(theMeal.matchedDate),
                 mealKey = theMeal.key.urlsafe()
             )

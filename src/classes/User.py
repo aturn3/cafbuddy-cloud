@@ -220,4 +220,30 @@ class User(webapp2_extras.appengine.auth.models.User):
 		return userOb.emailVerified
 
 
+	"""
+	Gets the user object for a given userKey
+	Returns a tuple of [userKey, userOb]
+	"""
+	@classmethod
+	def getUserObjectForkey(cls, userKey):
+		return getUserObjectsForKeyList([userKey])[userKey.urlsafe()]
+
+
+	"""
+	Gets all of the user objects for their specific userKey
+	Returns an array of tuples [userKey, userOb] for all userKeys that were found
+	"""
+	@classmethod
+	def getUserObjectsForKeyList(cls, userKeyList):
+		userObList = ndb.get_multi(userKeyList)
+		keyToUserObList = {}
+		for indx, userOb in enumerate(userObList):
+			if (userOb != None):
+				keyToUserObList[userKeyList[indx].urlsafe()] = userOb
+		return keyToUserObList
+
+
+
+
+
 
