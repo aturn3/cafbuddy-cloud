@@ -17,3 +17,15 @@ indexes:
   properties:
   - name: people
   - name: startTime
+
+# Used for getting all the compliments given by a given user
+- kind: Compliment
+  properties:
+  - name: giver
+  - name: added
+
+# Used for getting all the compliments given to a given user
+- kind: Compliment
+  properties:
+  - name: receiver
+  - name: added
