@@ -328,8 +328,3 @@ class MealApi(remote.Service):
             )
             matchedMealsMessageList.append(theMatchedMeal)
         return matchedMealsMessageList
-
-
-"""
-    def getMealsInRange()
-    """

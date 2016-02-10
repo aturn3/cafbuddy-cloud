@@ -1,10 +1,13 @@
 import endpoints
+from google.appengine.ext import ndb
 from protorpc import messages
 from protorpc import message_types
 from protorpc import remote
 
 from classes.User import User
 from classes.Ratings import Ratings
+from classes.Compliment import Compliment
+
 
 """
 Application Specific Error Numbers
@@ -53,16 +56,43 @@ class SendNewEmailVerificationRequestMessage(messages.Message):
 class IncrementPositiveRatingRequestMessage(messages.Message):
 	authToken = messages.StringField(1, required = True)
 	emailAddress = messages.StringField(2, required = True)
+	userKeys = messages.StringField(3, repeated = True)
 
 class IncrementNegativeRatingRequestMessage(messages.Message):
 	authToken = messages.StringField(1, required = True)
 	emailAddress = messages.StringField(2, required = True)
+	userKeys = messages.StringField(3, repeated = True)
 
 class AddReportToUserRequestMessage(messages.Message):
 	authToken = messages.StringField(1, required = True)
 	emailAddress = messages.StringField(2, required = True)
 	reportType = messages.IntegerField(3, required = True)
 	comments = messages.StringField(4, required = False)
+	userKeys = messages.StringField(5, repeated = True)
+
+class AddComplimentRequestMessage(messages.Message):
+	authToken = messages.StringField(1, required = True)
+	emailAddress = messages.StringField(2, required = True)
+	comment = messages.StringField(3, required = True)
+	userKeys = messages.StringField(4, repeated = True)
+	mealKey = messages.StringField(5, required = True)
+
+class GetComplimentsGivenToUserRequestMessage(messages.Message):
+	authToken = messages.StringField(1, required = True)
+	emailAddress = messages.StringField(2, required = True)
+
+class GetComplimentsGivenByUserRequestMessage(messages.Message):
+	authToken = messages.StringField(1, required = True)
+	emailAddress = messages.StringField(2, required = True)
+
+"""
+Response ProtoRPC message classes
+"""
+class ComplimentMessage(messages.Message):
+	toUserKey = messages.StringField(1, required = True)
+	giverUserKey = messages.StringField(2, required = True)
+	mealKey = messages.StringField(3, required = True)
+	comment = messages.StringField(4, required = True)
 
 """
 Response ProtoRPC messages
@@ -103,6 +133,19 @@ class AddReportToUserResponseMessage(messages.Message):
 	errorNumber = messages.IntegerField(1, required = False)
 	errorMessage = messages.StringField(2, required = False)
 
+class AddComplimentResponseMessage(messages.Message):
+	errorNumber = messages.IntegerField(1, required = False)
+	errorMessage = messages.StringField(2, required = False)
+
+class GetComplimentsGivenToUserResponseMessage(messages.Message):
+	errorNumber = messages.IntegerField(1, required = False)
+	errorMessage = messages.StringField(2, required = False)
+	compliments = messages.MessageField(ComplimentMessage, 3, repeated = True)
+
+class GetComplimentsGivenByUserResponseMessage(messages.Message):
+	errorNumber = messages.IntegerField(1, required = False)
+	errorMessage = messages.StringField(2, required = False)
+	compliments = messages.MessageField(ComplimentMessage, 3, repeated = True)
 
 
 @endpoints.api(name='userService', version='v1.0', description='API for working with a User', hostname='cafbuddy.appspot.com')  
@@ -195,7 +238,7 @@ class UserApi(remote.Service):
 
 
 	"""
-	Sets a Positive rating on the logged in user
+	Sets a Positive rating on on the specified users
 	On Errror: -100
 	"""
 	@endpoints.method(IncrementPositiveRatingRequestMessage, IncrementPositiveRatingResponseMessage, name='incrementPositiveRating', path='incrementPositiveRating', http_method='POST')
@@ -203,13 +246,14 @@ class UserApi(remote.Service):
 		isLoggedIn, userOb = User.validateLogIn(request.emailAddress, request.authToken)
 		if (not isLoggedIn):
 			return IncrementPositiveRatingResponseMessage(errorMessage = errorMessages[-100], errorNumber = -100)
-		
-		Ratings.addPositiveRating(userOb.key)
+
+		for userKey in request.userKeys:
+			Ratings.addPositiveRating(ndb.Key(urlsafe = userKey))
 		return IncrementPositiveRatingResponseMessage(errorNumber = 200)
 
 
 	"""
-	Increments a Negative rating on the logged in user
+	Increments a Negative rating on the specified users
 	On Errror: -100
 	"""
 	@endpoints.method(IncrementNegativeRatingRequestMessage, IncrementNegativeRatingResponseMessage, name='incrementNegativeRating', path='incrementNegativeRating', http_method='POST')
@@ -218,12 +262,13 @@ class UserApi(remote.Service):
 		if (not isLoggedIn):
 			return IncrementNegativeRatingResponseMessage(errorMessage = errorMessages[-100], errorNumber = -100)
 		
-		Ratings.addNegativeRating(userOb.key)
+		for userKey in request.userKeys:
+			Ratings.addNegativeRating(ndb.Key(urlsafe = userKey))
 		return IncrementNegativeRatingResponseMessage(errorNumber = 200)
 
 
 	"""
-	Adds a report (a complaint) to the user
+	Adds a report (a complaint) to the specified users
 	********
 	The reportType integers are:
 	0: General Complaint / Other
@@ -238,8 +283,67 @@ class UserApi(remote.Service):
 		if (not isLoggedIn):
 			return AddReportToUserResponseMessage(errorMessage = errorMessages[-100], errorNumber = -100)
 
-		Ratings.addReportToUser(userOb, request.reportType, request.comments)
+		for userKey in request.userKeys:
+			Ratings.addReportToUser(ndb.Key(urlsafe = userKey), request.reportType, request.comments)
 		return AddReportToUserResponseMessage(errorNumber = 200)
 
+	"""
+	Adds a compliment to the specified users
+	On Errror: -100
+	"""
+	@endpoints.method(AddComplimentRequestMessage, AddComplimentResponseMessage, name='addCompliment', path='addCompliment', http_method='POST')
+	def addCompliment(self, request):
+		isLoggedIn, userOb = User.validateLogIn(request.emailAddress, request.authToken)
+		if (not isLoggedIn):
+			return AddComplimentResponseMessage(errorMessage = errorMessages[-100], errorNumber = -100)
+
+		for userKey in request.userKeys:
+			Compliment.addCompliment(request.comment, userOb.key, ndb.Key(urlsafe = userKey), ndb.Key(urlsafe = request.mealKey))
+		return AddComplimentResponseMessage(errorNumber = 200)
+
+	"""
+	Gets the compliments given to the authenticated user
+	On Errror: -100
+	"""
+	@endpoints.method(GetComplimentsGivenToUserRequestMessage, GetComplimentsGivenToUserResponseMessage, name='getComplimentsGivenToUser', path='getComplimentsGivenToUser', http_method='POST')
+	def getComplimentsGivenToUser(self, request):
+		isLoggedIn, userOb = User.validateLogIn(request.emailAddress, request.authToken)
+		if (not isLoggedIn):
+			return GetComplimentsGivenToUserResponseMessage(errorMessage = errorMessages[-100], errorNumber = -100)
+
+		complimentsList = Compliment.getComplimentsGivenToUser(userOb.key)
+		complimentsMessageList = self.convertComplimentsToComplimentMessageList(complimentsList)
+		return GetComplimentsGivenToUserResponseMessage(errorNumber = 200, compliments = complimentsMessageList)
+
+	"""
+	Gets the compliments given by the authenticated user
+	On Errror: -100
+	"""
+	@endpoints.method(GetComplimentsGivenByUserRequestMessage, GetComplimentsGivenByUserResponseMessage, name='getComplimentsGivenByUser', path='getComplimentsGivenByUser', http_method='POST')
+	def getComplimentsGivenByUser(self, request):
+		isLoggedIn, userOb = User.validateLogIn(request.emailAddress, request.authToken)
+		if (not isLoggedIn):
+			return GetComplimentsGivenByUserResponseMessage(errorMessage = errorMessages[-100], errorNumber = -100)
+
+		complimentsList = Compliment.getComplimentsGivenByUser(userOb.key)
+		complimentsMessageList = self.convertComplimentsToComplimentMessageList(complimentsList)
+		return GetComplimentsGivenByUserResponseMessage(errorNumber = 200, compliments = complimentsMessageList)
 
 
+	
+
+	"""
+	Private methods
+	"""
+	@classmethod
+	def convertComplimentsToComplimentMessageList(cls, complimentsList):
+		complimentsMessageList = []
+		for theCompliment in complimentsList:
+			theComplimentMessage = ComplimentMessage(
+				toUserKey = theCompliment.receiver.urlsafe(),
+				giverUserKey = theCompliment.giver.urlsafe(),
+				mealKey = theCompliment.meal.urlsafe(),
+				comment = theCompliment.comment
+			)
+			complimentsMessageList.append(theComplimentMessage)
+		return complimentsMessageList
