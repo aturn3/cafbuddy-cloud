@@ -3,6 +3,7 @@ from protorpc import messages
 from protorpc import message_types
 from protorpc import remote
 
+import classes.Ratings
 from classes.Meal import *
 from classes.User import User
 from classes.Utilities import *
@@ -98,6 +99,7 @@ class MatchedMealMessage(messages.Message):
     people = messages.MessageField(UserMessage, 4, repeated = True)
     matchedDate = messages.StringField(5, required = True)
     mealKey = messages.StringField(6, required = True)
+    feedbackGiven = messages.BooleanField(7, required = False)
 
 """
 Response ProtoRPC messages
@@ -192,6 +194,7 @@ class MealApi(remote.Service):
     """
     Combines the getUpcomingMatchedMeals and getUpcomingUnMatchedMeals API calls by returning all the upcoming
     matched and unmatched meals
+    Note: Does not return whether or not the authenticating user has given feedback on the meals or not (use getMatchedMealsInRange for that)
     On Error: -100
     """
     @endpoints.method(GetAllUpcomingMealsRequestMessage, GetAllUpcomingMealsResponseMessage, name='getAllUpcomingMeals', path='getAllUpcomingMeals', http_method='POST')
@@ -211,6 +214,7 @@ class MealApi(remote.Service):
     """
     Gets all the matched meals (meals that have been paired with others) within the specified date range
     Since the response is likely used for showing a history, the response also includes the first and last name of all users in the meal
+    Note: Returns whether or not the authenticating user has given feedback on the meals or not
     On Error: -5, -100
     """
     @endpoints.method(GetMatchedMealsInRangeRequestMessage, GetMatchedMealsInRangeResponseMessage, name='getMatchedMealsInRange', path='getMatchedMealsInRange', http_method='POST')
@@ -225,7 +229,7 @@ class MealApi(remote.Service):
             return GetMatchedMealsInRangeResponseMessage(errorMessage = errorMessages[-5], errorNumber = -5)
 
         mealListInRange = Meal.getUpcomingMealsForUserInRange(userOb.key, startRangeDateOb, endRangeDateOb)
-        mealsInRangeMessageList = self.convertMatchedListToMatchedMessageListWithUserNames(mealListInRange)
+        mealsInRangeMessageList = self.convertMatchedListToMatchedMessageListWithUserNamesAndFeedback(mealListInRange, userOb.key)
 
         return GetMatchedMealsInRangeResponseMessage(errorNumber = 200, matchedMeals = mealsInRangeMessageList)
 
@@ -328,3 +332,18 @@ class MealApi(remote.Service):
             )
             matchedMealsMessageList.append(theMatchedMeal)
         return matchedMealsMessageList
+
+    """
+    userOb is the user that we are checking if they have given feedback or not for the meals
+    in the matchedMealList
+    """
+    @classmethod
+    def convertMatchedListToMatchedMessageListWithUserNamesAndFeedback(cls, matchedMealsList, userKey):
+        matchedMealsMessageList = cls.convertMatchedListToMatchedMessageListWithUserNames(matchedMealsList)
+        for theMatchedMealMessage in matchedMealsMessageList:
+            hasGivenFeedback = Ratings.Ratings.userHasGivenFeedbackForMeal(userKey,ndb.Key(urlsafe = theMatchedMealMessage.mealKey))
+            theMatchedMealMessage.feedbackGiven = hasGivenFeedback
+        return matchedMealsMessageList
+
+
+
