@@ -38,6 +38,24 @@ class Ratings(ndb.Model):
 		return True
 
 	"""
+	Checks if a user has given feedback for a meal
+	Basically this just checks if the user has incremented the negative or positive rating on anyone
+	for the particular meal indicated since in order to add a report or a compliment, you must add a 
+	positive or negative rating anyways
+	"""
+	@classmethod
+	def userHasGivenFeedbackForMeal(cls, userKey, mealKey):
+		ratingUserHasGiven = cls.query(
+			ndb.OR(
+				cls.positiveRatings == Rating(giver = userKey, meal = mealKey),
+				cls.negativeRatings == Rating(giver = userKey, meal = mealKey)
+			)
+		).get()
+		if (ratingUserHasGiven == None):
+			return False
+		return True
+
+	"""
 	Adds a positive rating to the to the user specified by the given userKey
 	given by the user specified in the raterUserKey for the meal in the mealKey
 	"""
