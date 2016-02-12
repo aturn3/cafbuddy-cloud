@@ -55,7 +55,7 @@ class UnMatchedMeal(ndb.Model):
         if (numPeople < 2):
             return [False, -3]
 
-        if (mealType < 0 or mealType > 2):
+        if (mealType < 0 or mealType > 3):
             return [False, -4]
 
         unMealOb = UnMatchedMeal(
@@ -95,7 +95,7 @@ class UnMatchedMeal(ndb.Model):
         mealOb = mealKey.get()
         # edit meal type if it shoud be and valid meal type
         if (mealType != None):
-            if (mealType < 0 or mealType > 2):
+            if (mealType < 0 or mealType > 3):
                 return [False, -4]
             mealOb.mealType = mealType
 
