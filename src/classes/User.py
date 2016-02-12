@@ -221,15 +221,6 @@ class User(webapp2_extras.appengine.auth.models.User):
 
 
 	"""
-	Gets the user object for a given userKey
-	Returns a tuple of [userKey, userOb]
-	"""
-	@classmethod
-	def getUserObjectForkey(cls, userKey):
-		return getUserObjectsForKeyList([userKey])[userKey.urlsafe()]
-
-
-	"""
 	Gets all of the user objects for their specific userKey
 	Returns an array of tuples [userKey, userOb] for all userKeys that were found
 	"""
@@ -243,6 +234,13 @@ class User(webapp2_extras.appengine.auth.models.User):
 		return keyToUserObList
 
 
+	"""
+	Gets the user object for a given userKey
+	Returns a tuple of [userKey, userOb]
+	"""
+	@classmethod
+	def getUserObjectForkey(cls, userKey):
+		return cls.getUserObjectsForKeyList([userKey])[userKey.urlsafe()]
 
 
 

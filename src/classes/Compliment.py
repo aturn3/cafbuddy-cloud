@@ -3,7 +3,6 @@ from google.appengine.ext import ndb
 from User import User
 from Meal import Meal
 
-# this is a descendant of the user
 class Compliment(ndb.Model):
 	comment = ndb.StringProperty(required = True, indexed = False)
 	giver = ndb.KeyProperty(required = True, kind = User, indexed = True)
