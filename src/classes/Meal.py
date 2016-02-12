@@ -6,7 +6,7 @@ import datetime
 from Utilities import *
 from User import User
 from School import School
-from Ratings import *
+import Ratings
 
 """
 Constant that defines the minimum length in minutes that a meal must be
@@ -35,7 +35,7 @@ class UnMatchedMeal(ndb.Model):
             return [False, -1]
 
         #check that the user is in good standing with the community...
-        if (not Ratings.userIsInGoodStanding(userOb.key)):
+        if (not Ratings.Ratings.userIsInGoodStanding(userOb.key)):
             return [False, -101]
 
         #get the objects required to create the meal and perform sanity checks
@@ -186,7 +186,7 @@ class Meal(ndb.Model):
 
         #validate the user and make sure that they are actually in good standing with the community
         for person in newPeople:
-            if (not Ratings.userIsInGoodStanding(person)):
+            if (not Ratings.Ratings.userIsInGoodStanding(person)):
                 return None
 
         # now we want to put the new meal in the database and 
