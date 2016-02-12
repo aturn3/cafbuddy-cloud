@@ -57,11 +57,15 @@ class IncrementPositiveRatingRequestMessage(messages.Message):
 	authToken = messages.StringField(1, required = True)
 	emailAddress = messages.StringField(2, required = True)
 	userKeys = messages.StringField(3, repeated = True)
+	mealKey = messages.StringField(4, required = True)
+	fromUserKey = messages.StringField(5, required = True)
 
 class IncrementNegativeRatingRequestMessage(messages.Message):
 	authToken = messages.StringField(1, required = True)
 	emailAddress = messages.StringField(2, required = True)
 	userKeys = messages.StringField(3, repeated = True)
+	mealKey = messages.StringField(4, required = True)
+	fromUserKey = messages.StringField(5, required = True)
 
 class AddReportToUserRequestMessage(messages.Message):
 	authToken = messages.StringField(1, required = True)
@@ -69,6 +73,8 @@ class AddReportToUserRequestMessage(messages.Message):
 	reportType = messages.IntegerField(3, required = True)
 	comments = messages.StringField(4, required = False)
 	userKeys = messages.StringField(5, repeated = True)
+	fromUserKey = messages.StringField(6, required = True)
+	mealKey = messages.StringField(7, required = True)
 
 class AddComplimentRequestMessage(messages.Message):
 	authToken = messages.StringField(1, required = True)
@@ -248,7 +254,7 @@ class UserApi(remote.Service):
 			return IncrementPositiveRatingResponseMessage(errorMessage = errorMessages[-100], errorNumber = -100)
 
 		for userKey in request.userKeys:
-			Ratings.addPositiveRating(ndb.Key(urlsafe = userKey))
+			Ratings.addPositiveRating(ndb.Key(urlsafe = userKey), ndb.Key(urlsafe = request.mealKey), ndb.Key(urlsafe = request.fromUserKey))
 		return IncrementPositiveRatingResponseMessage(errorNumber = 200)
 
 
@@ -263,7 +269,7 @@ class UserApi(remote.Service):
 			return IncrementNegativeRatingResponseMessage(errorMessage = errorMessages[-100], errorNumber = -100)
 		
 		for userKey in request.userKeys:
-			Ratings.addNegativeRating(ndb.Key(urlsafe = userKey))
+			Ratings.addNegativeRating(ndb.Key(urlsafe = userKey), ndb.Key(urlsafe = request.mealKey), ndb.Key(urlsafe = request.fromUserKey))
 		return IncrementNegativeRatingResponseMessage(errorNumber = 200)
 
 
@@ -284,7 +290,7 @@ class UserApi(remote.Service):
 			return AddReportToUserResponseMessage(errorMessage = errorMessages[-100], errorNumber = -100)
 
 		for userKey in request.userKeys:
-			Ratings.addReportToUser(ndb.Key(urlsafe = userKey), request.reportType, request.comments)
+			Ratings.addReportToUser(ndb.Key(urlsafe = userKey), request.reportType, ndb.Key(urlsafe = request.fromUserKey), ndb.Key(urlsafe = request.mealKey), request.comments)
 		return AddReportToUserResponseMessage(errorNumber = 200)
 
 	"""
@@ -328,7 +334,6 @@ class UserApi(remote.Service):
 		complimentsList = Compliment.getComplimentsGivenByUser(userOb.key)
 		complimentsMessageList = self.convertComplimentsToComplimentMessageList(complimentsList)
 		return GetComplimentsGivenByUserResponseMessage(errorNumber = 200, compliments = complimentsMessageList)
-
 
 	
 

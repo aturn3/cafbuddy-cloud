@@ -1,21 +1,32 @@
 from google.appengine.ext import ndb
+from google.appengine.api import mail
 import datetime
 
 from Utilities import *
 
+from Meal import Meal
+from User import User
+
 
 class Report(ndb.Model):
-	reportType = ndb.IntegerProperty(required = True, indexed = False)
+	reportType = ndb.IntegerProperty(required = True, indexed = True)
 	comments = ndb.StringProperty(indexed = False)
-	created = ndb.DateTimeProperty(auto_now_add = True)
+	giver = ndb.KeyProperty(required = True, kind = User, indexed = True)
+	meal = ndb.KeyProperty(required = True, kind = Meal, indexed = True)
+	added = ndb.DateTimeProperty(auto_now_add = True)
 
+class Rating(ndb.Model):
+	meal = ndb.KeyProperty(required = True, kind = Meal, indexed = True)
+	giver = ndb.KeyProperty(required = True, kind = User, indexed = True)
+	added = ndb.DateTimeProperty(auto_now_add = True)
 
+# the aggregate object that is actually assigned to the user
 class Ratings(ndb.Model):
-	positiveRatings = ndb.IntegerProperty(required = True, indexed = False)
-	negativeRatings = ndb.IntegerProperty(required = True, indexed = False)
-	positiveRatingsDates = ndb.DateTimeProperty(repeated = True, indexed = False)
-	negativeRatingsDates = ndb.DateTimeProperty(repeated = True, indexed = False)
-	reports = ndb.StructuredProperty(Report, repeated = True, indexed = False)
+	numPositiveRatings = ndb.IntegerProperty(required = True, indexed = True)
+	numNegativeRatings = ndb.IntegerProperty(required = True, indexed = True)
+	negativeRatings = ndb.StructuredProperty(Rating, repeated = True, indexed = True)
+	positiveRatings = ndb.StructuredProperty(Rating, repeated = True, indexed = True)
+	reports = ndb.StructuredProperty(Report, repeated = True, indexed = True)
 
 
 	"""
@@ -28,50 +39,60 @@ class Ratings(ndb.Model):
 
 	"""
 	Adds a positive rating to the to the user specified by the given userKey
+	given by the user specified in the raterUserKey for the meal in the mealKey
 	"""
 	@classmethod
-	def addPositiveRating(cls, userKey):
+	def addPositiveRating(cls, userKey, mealKey, raterUserKey):
 		ratingOb = cls.getOrCreateRatingsObjectForUser(userKey)
-		ratingOb.positiveRatings += 1
-		ratingOb.positiveRatingsDates.append(datetime.datetime.now())
+		ratingOb.numPositiveRatings += 1
+		newRating = Rating(
+			meal = mealKey,
+			giver = raterUserKey
+		)
+		ratingOb.positiveRatings.append(newRating)
 		ratingOb.put()
 
 	"""
 	Adds a negative rating to the to the user specified by the given userKey
+	given by the user specified in the raterUserKey for the meal in the mealKey
 	"""
 	@classmethod
-	def addNegativeRating(cls, userKey):
+	def addNegativeRating(cls, userKey, mealKey, raterUserKey):
 		ratingOb = cls.getOrCreateRatingsObjectForUser(userKey)
-		ratingOb.negativeRatings += 1
-		ratingOb.negativeRatingsDates.append(datetime.datetime.now())
+		ratingOb.numNegativeRatings += 1
+		newRating = Rating(
+			meal = mealKey,
+			giver = raterUserKey
+		)
+		ratingOb.negativeRatings.append(newRating)
 		ratingOb.put()	
 
 	"""
 	Adds a report (bad) to the user specified in the userKey
 	"""
 	@classmethod
-	def addReportToUser(cls, userOb, reportType, comments = ""):
+	def addReportToUser(cls, userKey, reportType, fromUserKey, mealKey, comments = ""):
+		userOb = User.getUserObjectForkey(userKey)
+
 		# first lets email Turnblad and I
-		# mailSender = "Caf Buddy <noreply@cafbuddy.appspotmail.com>"
-		# mailTo = "jforster959@gmail.com, aturnblad3@gmail.com"
-		# mailSubject = "User " + userOb.firstName + " " + userOb.lastName + " Was Reported"
-		# mailBody = "User " + userOb.firstName + " " + userOb.lastName + ""  "" ",\n\n Welcome to Caf Buddy!"
-		# mailBody += "\n\n We just need to make sure you are part of the St. Olaf community, so you just need to quickly verify your account."
-		# mailBody += " Click the following link or copy and paste it into your favorite browser and you will be all set to meet tons of new people and never eat alone again."
-		# mailBody += "\n\n http://cafbuddy.appspot.com/verifyemail?email=" + emailAddress + "&signupTok=" + signupToken
-		# mailBody += "\n\n If you did not sign up for Caf Buddy or were not expecting this email then you can safely ignore it."
-		# mail.send_mail(
-		# 	sender = mailSender,
-		# 	to = mailTo,
-		# 	subject = mailSubject,
-		# 	body = mailBody
-		# )
+		mailSender = "Caf Buddy <noreply@cafbuddy.appspotmail.com>"
+		mailTo = "jforster959@gmail.com, aturnblad3@gmail.com"
+		mailSubject = "User " + userOb.firstName + " " + userOb.lastName + " Was Reported"
+		mailBody = "User " + userOb.firstName + " " + userOb.lastName + " was reported at about " + dateTimeOjectToString(datetime.datetime.now()) + ". The comments read:\n" + comments + "\nCheck the datastore to see more information."
+		mail.send_mail(
+			sender = mailSender,
+			to = mailTo,
+			subject = mailSubject,
+			body = mailBody
+		)
 
 		# then lets add the report to the user
-		ratingOb = cls.getOrCreateRatingsObjectForUser(userOb.key)
+		ratingOb = cls.getOrCreateRatingsObjectForUser(userKey)
 		newReport = Report(
 			reportType = reportType,
-			comments = comments
+			comments = comments,
+			giver = fromUserKey,
+			meal = mealKey
 		)
 		ratingOb.reports.append(newReport)
 		ratingOb.put()
@@ -87,10 +108,10 @@ class Ratings(ndb.Model):
 		if (ratingOb is None):
 			ratingOb = Ratings(
 				parent = userKey,
-				positiveRatings = 0,
-				negativeRatings = 0,
-				positiveRatingsDates = [],
-				negativeRatingsDates = [],
+				numPositiveRatings = 0,
+				numNegativeRatings = 0,
+				positiveRatings = [],
+				negativeRatings = [],
 				reports = []
 			)
 			ratingOb.put()

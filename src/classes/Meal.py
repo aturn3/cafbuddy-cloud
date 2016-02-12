@@ -6,7 +6,7 @@ import datetime
 from Utilities import *
 from User import User
 from School import School
-from Ratings import Ratings
+from Ratings import *
 
 """
 Constant that defines the minimum length in minutes that a meal must be
