@@ -16,6 +16,7 @@ Application Specific Error Numbers
 -2 => User is already registered
 -3 => Required fields are missing
 -4 => Email address must be a valid St. Olaf College email
+-5 => User has already left feedback for this meal
 -100 => User was unable to be validated as logged in
 """
 
@@ -25,6 +26,7 @@ errorMessages = {
 	-2: "You are already registered.",
 	-3: "Required fields are missing.",
 	-4: "Email address must be a valid St. Olaf College email.",
+	-5: "We love the enthusiasm, but you can only leave feedback for this meal one time!",
 	-100: "You are not logged in."
 }
 
