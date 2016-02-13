@@ -15,7 +15,7 @@ Application Specific Error Numbers
 -2 => The start and end times were invalid
 -3 => At least two people are required for a meal
 -4 => Invalid meal type ( < 0 or > 2)
--5 => Note a valid date range
+-5 => Not a valid date range
 -100 => User was unable to be validated as logged in
 -101 => User is not in good standing with the community (was reported / downvoted)
 """

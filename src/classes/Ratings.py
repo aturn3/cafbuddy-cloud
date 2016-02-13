@@ -83,7 +83,7 @@ class Ratings(ndb.Model):
 			giver = raterUserKey
 		)
 		ratingOb.negativeRatings.append(newRating)
-		ratingOb.put()	
+		ratingOb.put()
 
 	"""
 	Adds a report (bad) to the user specified in the userKey

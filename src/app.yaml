@@ -25,6 +25,22 @@ handlers:
   script: send_notification.application
   secure: always
 
+- url: /termsofservice
+  script: termsofservice.application
+  secure: always
+
+- url: /privacypolicy
+  script: privacypolicy.application
+  secure: always
+
+- url: /howitworks
+  script: howitworks.application
+  secure: always
+
+- url: /credits
+  script: credits.application
+  secure: always
+
 libraries:
 - name: endpoints
   version: latest
