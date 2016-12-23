@@ -74,7 +74,7 @@ class MatchMeals(webapp2.RequestHandler):
                     self.response.write("   " + dateTimeOjectToString(theMatchedMeal.startRange) + " - " + dateTimeOjectToString(theMatchedMeal.endRange) + "     Created: " + dateTimeOjectToString(theMatchedMeal.created) + "</p>")
                     mealNum += 1
 
-            # suc, userOb = User.validateLogIn("***REMOVED***", "***REMOVED***")
+            # suc, userOb = User.validateLogIn("", "")
             # ummls = UnMatchedMeal.getUpcomingUnMatchedMealsForUser(userOb.key.urlsafe())
             # self.response.write("<h1> Unmatched Meals </h1>")
             # for um in ummls:
